@@ -8,6 +8,8 @@ import rain_icon from '../assets/rain.png'
 import snow_icon from '../assets/snow.png'
 import wind_icon from '../assets/wind.png'
 import humidity_icon from '../assets/humidity.png'
+import terre_jour from '../assets/espace/jour terre.jpg'
+import ilimi_group_logo from '../assets/espace/ilimi_group.png'
 
 const Meteo = () => {
   const [weathData, setWeathData] = useState(null);
@@ -16,6 +18,8 @@ const Meteo = () => {
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searchValue, setSearchValue] = useState('');
+  const [currentTime, setCurrentTime] = useState('');
+  const [currentTimestamp, setCurrentTimestamp] = useState(Date.now());
   const inputRef = useRef(null);
   const suggestionsRef = useRef(null);
 
@@ -109,8 +113,6 @@ const Meteo = () => {
       const data = await response.json();
       const iconCode = data.weather[0].icon;
       const weatherInfo = getWeatherIcon(iconCode);
-      const isDay = iconCode.endsWith('d');
-      
       setWeathData({
         humidity: data.main.humidity,
         windSpeed: Math.round(data.wind.speed),
@@ -120,8 +122,10 @@ const Meteo = () => {
         emoji: weatherInfo.emoji,
         country: data.sys.country,
         description: data.weather[0].description,
-        isDay: isDay,
-        iconCode: iconCode
+        iconCode: iconCode,
+        timezone: data.timezone,
+        sunrise: data.sys.sunrise,
+        sunset: data.sys.sunset
       });
     } catch (error) {
       setError(error.message || 'Erreur lors de la recherche');
@@ -157,16 +161,58 @@ const Meteo = () => {
   }, []);
 
   useEffect(() => {
-    search("Paris");
+    search("Abidjan");
   }, []);
+
+  useEffect(() => {
+    const updateTime = () => {
+      if (!weathData) return;
+
+      setCurrentTimestamp(Date.now());
+      const localTimestamp = Date.now() + (weathData.timezone * 1000);
+      const localDate = new Date(localTimestamp);
+      const formattedDate = new Intl.DateTimeFormat('fr-FR', {
+        timeZone: 'UTC',
+        weekday: 'long',
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric'
+      }).format(localDate);
+      const formattedTime = new Intl.DateTimeFormat('fr-FR', {
+        timeZone: 'UTC',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      }).format(localDate);
+
+      setCurrentTime(`${formattedDate} à ${formattedTime}`);
+    };
+
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+
+    return () => clearInterval(interval);
+  }, [weathData]);
+
+  const isDay = weathData
+    ? currentTimestamp >= weathData.sunrise * 1000 && currentTimestamp < weathData.sunset * 1000
+    : false;
 
   return (
     <>
+      <div
+        className={`background-day ${isDay ? 'visible' : ''}`}
+        style={{ backgroundImage: `url("${terre_jour}")` }}
+        aria-hidden="true"
+      ></div>
       {/* Étoiles scintillantes */}
       <div className="stars"></div>
       
       <div className='weather-container'>
         <div className='weather'>
+          <div className="brand-logo">
+            <img src={ilimi_group_logo} alt="Logo Ilimi Group" />
+          </div>
           <div className="search-wrapper" ref={suggestionsRef}>
             <div className="search-bar">
               <input 
@@ -215,7 +261,11 @@ const Meteo = () => {
             <>
               <div className="weather-main">
                 <div className="weather-icon-container">
-                  <img src={weathData.icon} alt="weather" className='weather-icon' />
+                  {(!isDay && weathData.iconCode.startsWith('01')) ? (
+                    <div className="night-icon" aria-label="Nuit">🌙</div>
+                  ) : (
+                    <img src={weathData.icon} alt="weather" className='weather-icon' />
+                  )}
                   <div className="weather-emoji">{weathData.emoji}</div>
                 </div>
                 <p className='temperature'>
@@ -225,9 +275,13 @@ const Meteo = () => {
                 <p className='location'>
                   📍 {weathData.location}, {weathData.country}
                   <span className="time-indicator">
-                    {weathData.isDay ? ' ☀️' : ' 🌙'}
+                    {isDay ? ' ☀️' : ' 🌙'}
                   </span>
                 </p>
+                <div className='time-display'>
+                  <span className='time-label'>Heure locale</span>
+                  <time>{currentTime}</time>
+                </div>
               </div>
               
               <div className="weather-details">
