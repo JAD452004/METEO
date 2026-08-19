@@ -9,6 +9,7 @@ import snow_icon from '../assets/snow.png'
 import wind_icon from '../assets/wind.png'
 import humidity_icon from '../assets/humidity.png'
 import terre_jour from '../assets/espace/jour terre.jpg'
+import soleil_couchant from '../assets/espace/soleil couchan.jpg'
 import ilimi_group_logo from '../assets/espace/ilimi_group.png'
 
 const Meteo = () => {
@@ -194,8 +195,13 @@ const Meteo = () => {
     return () => clearInterval(interval);
   }, [weathData]);
 
+  const sunsetTimestamp = weathData ? weathData.sunset * 1000 : 0;
+  const sunsetPeriod = 30 * 60 * 1000;
+  const isSunset = weathData
+    ? Math.abs(currentTimestamp - sunsetTimestamp) <= sunsetPeriod
+    : false;
   const isDay = weathData
-    ? currentTimestamp >= weathData.sunrise * 1000 && currentTimestamp < weathData.sunset * 1000
+    ? currentTimestamp >= weathData.sunrise * 1000 && currentTimestamp < sunsetTimestamp - sunsetPeriod
     : false;
 
   return (
@@ -203,6 +209,11 @@ const Meteo = () => {
       <div
         className={`background-day ${isDay ? 'visible' : ''}`}
         style={{ backgroundImage: `url("${terre_jour}")` }}
+        aria-hidden="true"
+      ></div>
+      <div
+        className={`background-sunset ${isSunset ? 'visible' : ''}`}
+        style={{ backgroundImage: `url("${soleil_couchant}")` }}
         aria-hidden="true"
       ></div>
       {/* Étoiles scintillantes */}
@@ -261,7 +272,7 @@ const Meteo = () => {
             <>
               <div className="weather-main">
                 <div className="weather-icon-container">
-                  {(!isDay && weathData.iconCode.startsWith('01')) ? (
+                  {(!isDay && !isSunset && weathData.iconCode.startsWith('01')) ? (
                     <div className="night-icon" aria-label="Nuit">🌙</div>
                   ) : (
                     <img src={weathData.icon} alt="weather" className='weather-icon' />
@@ -275,7 +286,7 @@ const Meteo = () => {
                 <p className='location'>
                   📍 {weathData.location}, {weathData.country}
                   <span className="time-indicator">
-                    {isDay ? ' ☀️' : ' 🌙'}
+                    {isSunset ? ' 🌅' : isDay ? ' ☀️' : ' 🌙'}
                   </span>
                 </p>
                 <div className='time-display'>

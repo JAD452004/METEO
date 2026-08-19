@@ -42,6 +42,23 @@ body {
   opacity: 1;
 }
 
+.background-sunset {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  opacity: 0;
+  transition: opacity 2.5s ease-in-out;
+  pointer-events: none;
+}
+
+.background-sunset.visible {
+  opacity: 1;
+}
+
 @keyframes rotateEarth {
   0% { 
     background-size: 110% 110%;
@@ -70,11 +87,13 @@ body::before {
   transition: background 2.5s ease-in-out;
 }
 
-body:has(.background-day.visible)::before {
+body:has(.background-day.visible)::before,
+body:has(.background-sunset.visible)::before {
   background: rgba(0, 0, 0, 0.2);
 }
 
-body:has(.background-day.visible) .stars {
+body:has(.background-day.visible) .stars,
+body:has(.background-sunset.visible) .stars {
   opacity: 0;
   transition: opacity 2.5s ease-in-out;
 }
