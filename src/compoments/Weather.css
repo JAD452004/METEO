@@ -144,11 +144,14 @@ body:has(.background-sunset.visible) .stars {
   position: relative;
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   z-index: 3;
   margin: 20px auto;
 }
 
 .weather {
+  width: 100%;
+  margin: 0 auto;
   background: rgba(0, 0, 0, 0.46);
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
@@ -259,6 +262,71 @@ body:has(.background-sunset.visible) .stars {
   width: 24px;
   height: 24px;
   filter: brightness(0) invert(1);
+}
+
+.search-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.secondary-btn,
+.quick-searches button,
+.favorite-btn {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 9px 12px;
+  color: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  transition: background 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
+}
+
+.secondary-btn {
+  justify-self: start;
+}
+
+.secondary-btn:hover,
+.quick-searches button:hover,
+.favorite-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.quick-searches {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.quick-searches span {
+  width: 100%;
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.quick-searches button {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.quick-searches .clear-history {
+  color: #ffaaa8;
+}
+
+.favorite-btn {
+  margin-top: 18px;
+  font-size: 13px;
+}
+
+.favorite-btn.active {
+  color: #ffe28a;
+  border-color: rgba(255, 226, 138, 0.35);
+  background: rgba(255, 226, 138, 0.1);
 }
 
 /* Suggestions */
@@ -539,6 +607,96 @@ body:has(.background-sunset.visible) .stars {
   letter-spacing: 0.5px;
 }
 
+.detail-card-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 6px;
+}
+
+.detail-card-text p {
+  font-size: 19px;
+}
+
+.forecast-section {
+  margin-top: 28px;
+  min-width: 0;
+}
+
+.forecast-section h2 {
+  margin-bottom: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.forecast-scroll,
+.daily-forecast {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 2px 2px 8px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
+.forecast-item,
+.daily-item {
+  flex: 0 0 82px;
+  min-height: 132px;
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.78);
+  text-align: center;
+}
+
+.forecast-item img {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+}
+
+.forecast-item span,
+.daily-item span {
+  font-size: 12px;
+}
+
+.forecast-item strong,
+.daily-item strong {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.forecast-item small,
+.daily-item small {
+  max-width: 100%;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.daily-item {
+  flex-basis: 108px;
+  min-height: 142px;
+}
+
+.daily-item img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
 /* Responsive */
 @media (max-width: 500px) {
   .weather {
@@ -580,7 +738,7 @@ body:has(.background-sunset.visible) .stars {
   }
 
   .weather-details {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
   }
 
@@ -614,6 +772,19 @@ body:has(.background-sunset.visible) .stars {
   .detail-card img {
     width: 38px;
     height: 38px;
+  }
+
+  .detail-card-text {
+    padding: 14px;
+  }
+
+  .detail-card-text p {
+    font-size: 16px;
+  }
+
+  .forecast-scroll,
+  .daily-forecast {
+    justify-content: flex-start;
   }
 }
 
@@ -657,5 +828,9 @@ body:has(.background-sunset.visible) .stars {
   .search-btn {
     width: 46px;
     height: 46px;
+  }
+
+  .weather-details {
+    grid-template-columns: 1fr;
   }
 }

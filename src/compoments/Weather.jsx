@@ -14,6 +14,7 @@ import ilimi_group_logo from '../assets/espace/ilimi_group.png'
 
 const Meteo = () => {
   const [weathData, setWeathData] = useState(null);
+  const [forecastData, setForecastData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [suggestions, setSuggestions] = useState([]);
@@ -21,8 +22,32 @@ const Meteo = () => {
   const [searchValue, setSearchValue] = useState('');
   const [currentTime, setCurrentTime] = useState('');
   const [currentTimestamp, setCurrentTimestamp] = useState(Date.now());
+  const [searchHistory, setSearchHistory] = useState(() => JSON.parse(localStorage.getItem('meteo-history') || '[]'));
+  const [favorites, setFavorites] = useState(() => JSON.parse(localStorage.getItem('meteo-favorites') || '[]'));
   const inputRef = useRef(null);
   const suggestionsRef = useRef(null);
+
+  const formatLocalTime = (timestamp, timezone, options = {}) => {
+    const localDate = new Date((timestamp + timezone) * 1000);
+    return new Intl.DateTimeFormat('fr-FR', { timeZone: 'UTC', ...options }).format(localDate);
+  };
+
+  const saveSearch = (city) => {
+    const nextHistory = [city, ...searchHistory.filter(item => item.toLowerCase() !== city.toLowerCase())].slice(0, 6);
+    setSearchHistory(nextHistory);
+    localStorage.setItem('meteo-history', JSON.stringify(nextHistory));
+  };
+
+  const toggleFavorite = () => {
+    if (!weathData) return;
+    const city = `${weathData.location}, ${weathData.country}`;
+    const exists = favorites.some(item => item.toLowerCase() === city.toLowerCase());
+    const nextFavorites = exists
+      ? favorites.filter(item => item.toLowerCase() !== city.toLowerCase())
+      : [...favorites, city];
+    setFavorites(nextFavorites);
+    localStorage.setItem('meteo-favorites', JSON.stringify(nextFavorites));
+  };
 
   const getWeatherIcon = (iconCode) => {
     const icons = {
@@ -93,7 +118,7 @@ const Meteo = () => {
     search(city.name);
   };
 
-  const search = async (city) => {
+  const search = async (city, coordinates = null) => {
     if (!city.trim()) {
       setError('Veuillez entrer une ville');
       return;
@@ -104,20 +129,31 @@ const Meteo = () => {
     setShowSuggestions(false);
     
     try {
-      const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=${import.meta.env.VITE_APP_ID}`;
-      const response = await fetch(url);
+      const locationQuery = coordinates
+        ? `lat=${coordinates.lat}&lon=${coordinates.lon}`
+        : `q=${encodeURIComponent(city)}`;
+      const url = `https://api.openweathermap.org/data/2.5/weather?${locationQuery}&units=metric&appid=${import.meta.env.VITE_APP_ID}`;
+      const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?${locationQuery}&units=metric&appid=${import.meta.env.VITE_APP_ID}`;
+      const [response, forecastResponse] = await Promise.all([fetch(url), fetch(forecastUrl)]);
       
       if (!response.ok) {
         throw new Error('Ville non trouvée');
       }
+      if (!forecastResponse.ok) {
+        throw new Error('Prévisions indisponibles');
+      }
       
       const data = await response.json();
+      const forecast = await forecastResponse.json();
       const iconCode = data.weather[0].icon;
       const weatherInfo = getWeatherIcon(iconCode);
-      setWeathData({
+      const currentWeather = {
         humidity: data.main.humidity,
         windSpeed: Math.round(data.wind.speed),
         temperature: Math.floor(data.main.temp),
+        feelsLike: Math.round(data.main.feels_like),
+        pressure: data.main.pressure,
+        visibility: Math.round((data.visibility || 0) / 100) / 10,
         location: data.name,
         icon: weatherInfo.icon,
         emoji: weatherInfo.emoji,
@@ -127,13 +163,45 @@ const Meteo = () => {
         timezone: data.timezone,
         sunrise: data.sys.sunrise,
         sunset: data.sys.sunset
-      });
+      };
+      setWeathData(currentWeather);
+      setForecastData(forecast);
+      setSearchValue(`${data.name}, ${data.sys.country}`);
+      saveSearch(data.name);
     } catch (error) {
       setError(error.message || 'Erreur lors de la recherche');
       setWeathData(null);
     } finally {
       setLoading(false);
     }
+  };
+
+  const searchFromHistory = (city) => {
+    setSearchValue(city);
+    search(city);
+  };
+
+  const locateUser = () => {
+    if (!navigator.geolocation) {
+      setError('La géolocalisation n’est pas disponible sur cet appareil');
+      return;
+    }
+    setLoading(true);
+    navigator.geolocation.getCurrentPosition(async ({ coords }) => {
+      try {
+        const url = `https://api.openweathermap.org/geo/1.0/reverse?lat=${coords.latitude}&lon=${coords.longitude}&limit=1&appid=${import.meta.env.VITE_APP_ID}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        if (!data[0]) throw new Error('Position inconnue');
+        await search(data[0].name, { lat: coords.latitude, lon: coords.longitude });
+      } catch (locationError) {
+        setError(locationError.message || 'Impossible de trouver votre ville');
+        setLoading(false);
+      }
+    }, () => {
+      setError('Autorisation de localisation refusée');
+      setLoading(false);
+    });
   };
 
   const handleSearch = () => {
@@ -204,6 +272,23 @@ const Meteo = () => {
     ? currentTimestamp >= weathData.sunrise * 1000 && currentTimestamp < sunsetTimestamp - sunsetPeriod
     : false;
 
+  const isFavorite = weathData && favorites.some(item => item.toLowerCase() === `${weathData.location}, ${weathData.country}`.toLowerCase());
+  const dailyForecast = forecastData
+    ? Object.values(forecastData.list.reduce((days, item) => {
+        const date = item.dt_txt.split(' ')[0];
+        if (!days[date]) days[date] = [];
+        days[date].push(item);
+        return days;
+      }, {})).slice(1, 6).map(day => ({
+        date: day[0].dt,
+        min: Math.round(Math.min(...day.map(item => item.main.temp_min))),
+        max: Math.round(Math.max(...day.map(item => item.main.temp_max))),
+        description: day[Math.floor(day.length / 2)].weather[0].description,
+        icon: getWeatherIcon(day[Math.floor(day.length / 2)].weather[0].icon).icon
+      }))
+    : [];
+  const hourlyForecast = forecastData ? forecastData.list.slice(0, 8) : [];
+
   return (
     <>
       <div
@@ -242,6 +327,23 @@ const Meteo = () => {
               <button onClick={handleSearch} className="search-btn">
                 <img src={search_icon} alt="search" />
               </button>
+            </div>
+
+            <div className="search-actions">
+              <button type="button" onClick={locateUser} className="secondary-btn">⌖ Ma position</button>
+              {searchHistory.length > 0 && (
+                <div className="quick-searches">
+                  <span>Récentes</span>
+                  {searchHistory.map(city => <button type="button" key={city} onClick={() => searchFromHistory(city)}>{city}</button>)}
+                  <button type="button" className="clear-history" onClick={() => { setSearchHistory([]); localStorage.removeItem('meteo-history'); }}>Effacer</button>
+                </div>
+              )}
+              {favorites.length > 0 && (
+                <div className="quick-searches favorites-list">
+                  <span>Favoris</span>
+                  {favorites.map(city => <button type="button" key={city} onClick={() => searchFromHistory(city)}>{city} ★</button>)}
+                </div>
+              )}
             </div>
             
             {showSuggestions && suggestions.length > 0 && (
@@ -293,6 +395,9 @@ const Meteo = () => {
                   <span className='time-label'>Heure locale</span>
                   <time>{currentTime}</time>
                 </div>
+                <button type="button" className={`favorite-btn ${isFavorite ? 'active' : ''}`} onClick={toggleFavorite}>
+                  {isFavorite ? '★ Ville favorite' : '☆ Ajouter aux favoris'}
+                </button>
               </div>
               
               <div className="weather-details">
@@ -310,7 +415,39 @@ const Meteo = () => {
                     <span>Vent</span>
                   </div>
                 </div>
+                <div className="detail-card detail-card-text"><span>Ressentie</span><p>{weathData.feelsLike}°C</p></div>
+                <div className="detail-card detail-card-text"><span>Pression</span><p>{weathData.pressure} hPa</p></div>
+                <div className="detail-card detail-card-text"><span>Visibilité</span><p>{weathData.visibility} km</p></div>
+                <div className="detail-card detail-card-text"><span>Lever / coucher</span><p>{formatLocalTime(weathData.sunrise, weathData.timezone, { hour: '2-digit', minute: '2-digit' })} / {formatLocalTime(weathData.sunset, weathData.timezone, { hour: '2-digit', minute: '2-digit' })}</p></div>
               </div>
+
+              <section className="forecast-section">
+                <h2>Prévisions horaires</h2>
+                <div className="forecast-scroll">
+                  {hourlyForecast.map(item => (
+                    <div className="forecast-item" key={item.dt}>
+                      <span>{formatLocalTime(item.dt, forecastData.city.timezone, { hour: '2-digit', minute: '2-digit' })}</span>
+                      <img src={getWeatherIcon(item.weather[0].icon).icon} alt={item.weather[0].description} />
+                      <strong>{Math.round(item.main.temp)}°</strong>
+                      {item.pop > 0 && <small>☂ {Math.round(item.pop * 100)}%</small>}
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="forecast-section">
+                <h2>Les prochains jours</h2>
+                <div className="daily-forecast">
+                  {dailyForecast.map(day => (
+                    <div className="daily-item" key={day.date}>
+                      <span>{formatLocalTime(day.date, forecastData.city.timezone, { weekday: 'short', day: 'numeric', month: 'short' })}</span>
+                      <img src={day.icon} alt={day.description} />
+                      <strong>{day.max}° / {day.min}°</strong>
+                      <small>{day.description}</small>
+                    </div>
+                  ))}
+                </div>
+              </section>
             </>
           ) : (
             <div className="no-data">Aucune donnée disponible</div>
