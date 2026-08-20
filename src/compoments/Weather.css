@@ -142,6 +142,8 @@ body:has(.background-sunset.visible) .stars {
   max-width: 480px;
   padding: 20px;
   position: relative;
+  display: flex;
+  flex-wrap: wrap;
   z-index: 3;
   margin: 20px auto;
 }
