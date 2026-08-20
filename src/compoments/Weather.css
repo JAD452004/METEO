@@ -82,7 +82,7 @@ body::before {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.22);
   z-index: 1;
   transition: background 2.5s ease-in-out;
 }
@@ -149,27 +149,24 @@ body:has(.background-sunset.visible) .stars {
 }
 
 .weather {
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.46);
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
+
+  transition:
+    transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    background 0.4s ease,
+    box-shadow 0.4s ease;
+
   border-radius: 30px;
   padding: 40px 35px;
-  box-shadow:  
+
+  box-shadow:
     0 25px 80px rgba(0, 0, 0, 0.6),
     0 0 0 1px rgba(255, 255, 255, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
 
-@keyframes weatherOpen {
-  0% {
-    opacity: 0;
-    transform: scale(0.72);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .weather:hover {
