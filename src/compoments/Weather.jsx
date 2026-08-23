@@ -13,314 +13,407 @@ import soleil_couchant from '../assets/espace/soleil couchan.jpg'
 import ilimi_group_logo from '../assets/espace/ilimi_group.png'
 
 const Meteo = () => {
-  const [weathData, setWeathData] = useState(null);
-  const [forecastData, setForecastData] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [suggestions, setSuggestions] = useState([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [searchValue, setSearchValue] = useState('');
-  const [currentTime, setCurrentTime] = useState('');
-  const [currentTimestamp, setCurrentTimestamp] = useState(Date.now());
-  const [searchHistory, setSearchHistory] = useState(() => JSON.parse(localStorage.getItem('meteo-history') || '[]'));
-  const [favorites, setFavorites] = useState(() => JSON.parse(localStorage.getItem('meteo-favorites') || '[]'));
-  const inputRef = useRef(null);
-  const suggestionsRef = useRef(null);
+  const [weathData, setWeathData] = useState(null)
+  const [forecastData, setForecastData] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [suggestions, setSuggestions] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [searchValue, setSearchValue] = useState('')
+  const [currentTime, setCurrentTime] = useState('')
+  const [currentTimestamp, setCurrentTimestamp] = useState(Date.now())
+  const [searchHistory, setSearchHistory] = useState(() => JSON.parse(localStorage.getItem('meteo-history') || '[]'))
+  const [favorites, setFavorites] = useState(() => JSON.parse(localStorage.getItem('meteo-favorites') || '[]'))
+  const [coordinates, setCoordinates] = useState(null)
+  const inputRef = useRef(null)
+  const suggestionsRef = useRef(null)
+
+  // --- FONCTIONS UTILITAIRES ---
 
   const formatLocalTime = (timestamp, timezone, options = {}) => {
-    const localDate = new Date((timestamp + timezone) * 1000);
-    return new Intl.DateTimeFormat('fr-FR', { timeZone: 'UTC', ...options }).format(localDate);
-  };
+    if (!timestamp) return '--:--'
+    const date = new Date(timestamp * 1000)
+    return new Intl.DateTimeFormat('fr-FR', {
+      timeZone: timezone || 'UTC',
+      ...options
+    }).format(date)
+  }
+
+  const getWeatherInfo = (weatherCode, isDay = 1) => {
+    const codes = {
+      0: { description: 'Ciel dégagé', emoji: '☀️', icon: clear_icon },
+      1: { description: 'Principalement dégagé', emoji: '🌤️', icon: clear_icon },
+      2: { description: 'Partiellement nuageux', emoji: '⛅', icon: cloud_icon },
+      3: { description: 'Nuageux', emoji: '☁️', icon: cloud_icon },
+      45: { description: 'Brouillard', emoji: '🌫️', icon: cloud_icon },
+      48: { description: 'Brouillard givrant', emoji: '🌫️', icon: cloud_icon },
+      51: { description: 'Bruine légère', emoji: '🌦️', icon: drizzle_icon },
+      53: { description: 'Bruine modérée', emoji: '🌦️', icon: drizzle_icon },
+      55: { description: 'Bruine forte', emoji: '🌧️', icon: rain_icon },
+      56: { description: 'Bruine verglaçante légère', emoji: '🌧️', icon: rain_icon },
+      57: { description: 'Bruine verglaçante forte', emoji: '🌧️', icon: rain_icon },
+      61: { description: 'Pluie légère', emoji: '🌦️', icon: rain_icon },
+      63: { description: 'Pluie modérée', emoji: '🌧️', icon: rain_icon },
+      65: { description: 'Pluie forte', emoji: '🌧️', icon: rain_icon },
+      66: { description: 'Pluie verglaçante légère', emoji: '🌧️', icon: rain_icon },
+      67: { description: 'Pluie verglaçante forte', emoji: '🌧️', icon: rain_icon },
+      71: { description: 'Neige légère', emoji: '🌨️', icon: snow_icon },
+      73: { description: 'Neige modérée', emoji: '❄️', icon: snow_icon },
+      75: { description: 'Neige forte', emoji: '❄️', icon: snow_icon },
+      77: { description: 'Grains de neige', emoji: '🌨️', icon: snow_icon },
+      80: { description: 'Averses légères', emoji: '🌦️', icon: rain_icon },
+      81: { description: 'Averses modérées', emoji: '🌧️', icon: rain_icon },
+      82: { description: 'Averses fortes', emoji: '⛈️', icon: rain_icon },
+      85: { description: 'Averses de neige légères', emoji: '🌨️', icon: snow_icon },
+      86: { description: 'Averses de neige fortes', emoji: '❄️', icon: snow_icon },
+      95: { description: 'Orage', emoji: '⛈️', icon: rain_icon },
+      96: { description: 'Orage avec grêle', emoji: '⛈️', icon: rain_icon },
+      99: { description: 'Orage avec grêle forte', emoji: '⛈️', icon: rain_icon }
+    }
+
+    const base = codes[weatherCode] || { description: 'Météo inconnue', emoji: '🌤️', icon: clear_icon }
+    const iconCode = isDay ? 'd' : 'n'
+    
+    return {
+      ...base,
+      iconCode: `${Object.keys(codes).find(key => codes[key] === base) || '01'}${iconCode}`
+    }
+  }
+
+  // --- GESTION DES FAVORIS ET HISTORIQUE ---
 
   const saveSearch = (city) => {
-    const nextHistory = [city, ...searchHistory.filter(item => item.toLowerCase() !== city.toLowerCase())].slice(0, 6);
-    setSearchHistory(nextHistory);
-    localStorage.setItem('meteo-history', JSON.stringify(nextHistory));
-  };
+    const nextHistory = [city, ...searchHistory.filter(item => item.toLowerCase() !== city.toLowerCase())].slice(0, 6)
+    setSearchHistory(nextHistory)
+    localStorage.setItem('meteo-history', JSON.stringify(nextHistory))
+  }
 
   const toggleFavorite = () => {
-    if (!weathData) return;
-    const city = `${weathData.location}, ${weathData.country}`;
-    const exists = favorites.some(item => item.toLowerCase() === city.toLowerCase());
+    if (!weathData) return
+    const city = `${weathData.location}, ${weathData.country}`
+    const exists = favorites.some(item => item.toLowerCase() === city.toLowerCase())
     const nextFavorites = exists
       ? favorites.filter(item => item.toLowerCase() !== city.toLowerCase())
-      : [...favorites, city];
-    setFavorites(nextFavorites);
-    localStorage.setItem('meteo-favorites', JSON.stringify(nextFavorites));
-  };
+      : [...favorites, city]
+    setFavorites(nextFavorites)
+    localStorage.setItem('meteo-favorites', JSON.stringify(nextFavorites))
+  }
 
-  const getWeatherIcon = (iconCode) => {
-    const icons = {
-      '01d': { emoji: '', icon: clear_icon },
-      '02d': { emoji: '', icon: cloud_icon },
-      '03d': { emoji: '', icon: cloud_icon },
-      '04d': { emoji: '', icon: drizzle_icon },
-      '09d': { emoji: '', icon: rain_icon },
-      '10d': { emoji: '', icon: rain_icon },
-      '11d': { emoji: '', icon: rain_icon },
-      '13d': { emoji: '', icon: snow_icon },
-      '50d': { emoji: '', icon: cloud_icon },
-      '01n': { emoji: '', icon: clear_icon },
-      '02n': { emoji: '', icon: cloud_icon },
-      '03n': { emoji: '', icon: cloud_icon },
-      '04n': { emoji: '', icon: drizzle_icon },
-      '09n': { emoji: '', icon: rain_icon },
-      '10n': { emoji: '', icon: rain_icon },
-      '11n': { emoji: '', icon: rain_icon },
-      '13n': { emoji: '', icon: snow_icon },
-      '50n': { emoji: '', icon: cloud_icon },
-    };
-    return icons[iconCode] || { emoji: '🌤️', icon: clear_icon };
-  };
+  // --- RECHERCHE ET MÉTÉO ---
+
+  const search = async (city, coords = null) => {
+    if (!city.trim() && !coords) {
+      setError('Veuillez entrer une ville')
+      return
+    }
+
+    setLoading(true)
+    setError('')
+    setShowSuggestions(false)
+
+    try {
+      let lat, lon, cityName, countryName
+
+      if (coords) {
+        lat = coords.lat
+        lon = coords.lon
+      } else {
+        // Géocodage avec Open-Meteo
+        const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=fr`
+        const geoResponse = await fetch(geoUrl)
+        const geoData = await geoResponse.json()
+
+        if (!geoData.results || geoData.results.length === 0) {
+          throw new Error('Ville non trouvée')
+        }
+
+        const location = geoData.results[0]
+        lat = location.latitude
+        lon = location.longitude
+        cityName = location.name
+        countryName = location.country || ''
+      }
+
+      // Obtenir la météo avec Open-Meteo
+      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,relativehumidity_2m,apparent_temperature,precipitation_probability,weathercode,windspeed_10m&daily=weathercode,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=auto&forecast_days=7`
+      
+      const response = await fetch(weatherUrl)
+      const data = await response.json()
+
+      if (!data.current_weather) {
+        throw new Error('Données météo indisponibles')
+      }
+
+      // Si on n'a pas encore le nom de la ville
+      if (!cityName) {
+        const reverseGeoUrl = `https://geocoding-api.open-meteo.com/v1/search?latitude=${lat}&longitude=${lon}&count=1`
+        const reverseResponse = await fetch(reverseGeoUrl)
+        const reverseData = await reverseResponse.json()
+        cityName = reverseData.results?.[0]?.name || 'Ville inconnue'
+        countryName = reverseData.results?.[0]?.country || ''
+      }
+
+      const weatherCode = data.current_weather.weathercode
+      const isDay = data.current_weather.is_day || 1
+      const weatherInfo = getWeatherInfo(weatherCode, isDay)
+
+      const currentWeather = {
+        humidity: data.hourly?.relativehumidity_2m?.[0] || 0,
+        windSpeed: Math.round(data.current_weather.windspeed || 0),
+        temperature: Math.round(data.current_weather.temperature),
+        feelsLike: Math.round(data.hourly?.apparent_temperature?.[0] || data.current_weather.temperature),
+        pressure: 1013,
+        visibility: 10,
+        location: cityName,
+        icon: weatherInfo.icon,
+        emoji: weatherInfo.emoji,
+        country: countryName,
+        description: weatherInfo.description,
+        iconCode: weatherInfo.iconCode,
+        timezone: data.timezone_abbreviation || 'UTC',
+        timezoneOffset: data.timezone_offset || 0,
+        sunrise: new Date(data.daily.sunrise[0]).getTime() / 1000,
+        sunset: new Date(data.daily.sunset[0]).getTime() / 1000,
+        weatherCode: weatherCode,
+        lat: lat,
+        lon: lon
+      }
+
+      setWeathData(currentWeather)
+      setForecastData(data)
+      setCoordinates({ lat, lon })
+      setSearchValue(`${cityName}, ${countryName}`)
+      saveSearch(cityName)
+
+    } catch (error) {
+      setError(error.message || 'Erreur lors de la recherche')
+      setWeathData(null)
+      setForecastData(null)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // --- SUGGESTIONS ---
 
   const fetchSuggestions = async (query) => {
     if (!query.trim() || query.length < 2) {
-      setSuggestions([]);
-      setShowSuggestions(false);
-      return;
+      setSuggestions([])
+      setShowSuggestions(false)
+      return
     }
 
     try {
-      const url = `https://api.openweathermap.org/geo/1.0/direct?q=${query}&limit=5&appid=${import.meta.env.VITE_APP_ID}`;
-      const response = await fetch(url);
-      const data = await response.json();
-      
-      if (data && data.length > 0) {
-        const formattedSuggestions = data.map(city => ({
+      const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=fr`
+      const response = await fetch(url)
+      const data = await response.json()
+
+      if (data.results && data.results.length > 0) {
+        const formattedSuggestions = data.results.map(city => ({
           name: city.name,
-          country: city.country,
-          state: city.state || '',
-          display: `${city.name}${city.state ? `, ${city.state}` : ''}, ${city.country}`
-        }));
-        setSuggestions(formattedSuggestions);
-        setShowSuggestions(true);
+          country: city.country || '',
+          state: city.admin1 || city.admin2 || '',
+          lat: city.latitude,
+          lon: city.longitude,
+          display: `${city.name}${city.admin1 ? `, ${city.admin1}` : ''}${city.country ? `, ${city.country}` : ''}`
+        }))
+        setSuggestions(formattedSuggestions)
+        setShowSuggestions(true)
       } else {
-        setSuggestions([]);
-        setShowSuggestions(false);
+        setSuggestions([])
+        setShowSuggestions(false)
       }
     } catch (error) {
-      console.error('Erreur de suggestions:', error);
-      setSuggestions([]);
-      setShowSuggestions(false);
+      console.error('Erreur de suggestions:', error)
+      setSuggestions([])
+      setShowSuggestions(false)
     }
-  };
+  }
+
+  // --- GESTIONNAIRES D'ÉVÉNEMENTS ---
 
   const handleInputChange = (e) => {
-    const value = e.target.value;
-    setSearchValue(value);
-    fetchSuggestions(value);
-  };
+    const value = e.target.value
+    setSearchValue(value)
+    fetchSuggestions(value)
+  }
 
   const handleSelectSuggestion = (city) => {
-    setSearchValue(city.display);
-    setShowSuggestions(false);
-    setSuggestions([]);
-    search(city.name);
-  };
-
-  const search = async (city, coordinates = null) => {
-    if (!city.trim()) {
-      setError('Veuillez entrer une ville');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    setShowSuggestions(false);
-    
-    try {
-      const locationQuery = coordinates
-        ? `lat=${coordinates.lat}&lon=${coordinates.lon}`
-        : `q=${encodeURIComponent(city)}`;
-      const url = `https://api.openweathermap.org/data/2.5/weather?${locationQuery}&units=metric&appid=${import.meta.env.VITE_APP_ID}`;
-      const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?${locationQuery}&units=metric&appid=${import.meta.env.VITE_APP_ID}`;
-      const [response, forecastResponse] = await Promise.all([fetch(url), fetch(forecastUrl)]);
-      
-      if (!response.ok) {
-        throw new Error('Ville non trouvée');
-      }
-      if (!forecastResponse.ok) {
-        throw new Error('Prévisions indisponibles');
-      }
-      
-      const data = await response.json();
-      const forecast = await forecastResponse.json();
-      const iconCode = data.weather[0].icon;
-      const weatherInfo = getWeatherIcon(iconCode);
-      const currentWeather = {
-        humidity: data.main.humidity,
-        windSpeed: Math.round(data.wind.speed),
-        temperature: Math.floor(data.main.temp),
-        feelsLike: Math.round(data.main.feels_like),
-        pressure: data.main.pressure,
-        visibility: Math.round((data.visibility || 0) / 100) / 10,
-        location: data.name,
-        icon: weatherInfo.icon,
-        emoji: weatherInfo.emoji,
-        country: data.sys.country,
-        description: data.weather[0].description,
-        iconCode: iconCode,
-        timezone: data.timezone,
-        sunrise: data.sys.sunrise,
-        sunset: data.sys.sunset
-      };
-      setWeathData(currentWeather);
-      setForecastData(forecast);
-      setSearchValue(`${data.name}, ${data.sys.country}`);
-      saveSearch(data.name);
-    } catch (error) {
-      setError(error.message || 'Erreur lors de la recherche');
-      setWeathData(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const searchFromHistory = (city) => {
-    setSearchValue(city);
-    search(city);
-  };
-
-  const locateUser = () => {
-    if (!navigator.geolocation) {
-      setError('La géolocalisation n’est pas disponible sur cet appareil');
-      return;
-    }
-    setLoading(true);
-    navigator.geolocation.getCurrentPosition(async ({ coords }) => {
-      try {
-        const url = `https://api.openweathermap.org/geo/1.0/reverse?lat=${coords.latitude}&lon=${coords.longitude}&limit=1&appid=${import.meta.env.VITE_APP_ID}`;
-        const response = await fetch(url);
-        const data = await response.json();
-        if (!data[0]) throw new Error('Position inconnue');
-        await search(data[0].name, { lat: coords.latitude, lon: coords.longitude });
-      } catch (locationError) {
-        setError(locationError.message || 'Impossible de trouver votre ville');
-        setLoading(false);
-      }
-    }, () => {
-      setError('Autorisation de localisation refusée');
-      setLoading(false);
-    });
-  };
+    setSearchValue(city.display)
+    setShowSuggestions(false)
+    setSuggestions([])
+    search(city.name, { lat: city.lat, lon: city.lon })
+  }
 
   const handleSearch = () => {
-    const city = inputRef.current.value;
-    search(city);
-  };
+    const city = inputRef.current?.value || searchValue
+    search(city)
+  }
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
       if (suggestions.length > 0) {
-        handleSelectSuggestion(suggestions[0]);
+        handleSelectSuggestion(suggestions[0])
       } else {
-        handleSearch();
+        handleSearch()
       }
     }
-  };
+  }
+
+  const searchFromHistory = (city) => {
+    setSearchValue(city)
+    search(city)
+  }
+
+  const locateUser = () => {
+    if (!navigator.geolocation) {
+      setError('La géolocalisation n\'est pas disponible sur cet appareil')
+      return
+    }
+
+    setLoading(true)
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        try {
+          await search('', { lat: coords.latitude, lon: coords.longitude })
+        } catch (error) {
+          setError(error.message || 'Impossible de trouver votre position')
+          setLoading(false)
+        }
+      },
+      () => {
+        setError('Autorisation de localisation refusée')
+        setLoading(false)
+      }
+    )
+  }
+
+  // --- EFFETS ---
 
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (suggestionsRef.current && !suggestionsRef.current.contains(event.target)) {
-        setShowSuggestions(false);
+        setShowSuggestions(false)
       }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   useEffect(() => {
-    search("Abidjan");
-  }, []);
+    search('Abidjan')
+  }, [])
 
   useEffect(() => {
+    if (!weathData) return
+
     const updateTime = () => {
-      if (!weathData) return;
-
-      setCurrentTimestamp(Date.now());
-      const localTimestamp = Date.now() + (weathData.timezone * 1000);
-      const localDate = new Date(localTimestamp);
+      setCurrentTimestamp(Date.now())
+      
+      const now = new Date()
+      const offset = weathData.timezoneOffset || 0
+      const localTime = new Date(now.getTime() + offset * 1000)
+      
       const formattedDate = new Intl.DateTimeFormat('fr-FR', {
-        timeZone: 'UTC',
         weekday: 'long',
         day: '2-digit',
         month: 'long',
         year: 'numeric'
-      }).format(localDate);
+      }).format(localTime)
+
       const formattedTime = new Intl.DateTimeFormat('fr-FR', {
-        timeZone: 'UTC',
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit'
-      }).format(localDate);
+      }).format(localTime)
 
-      setCurrentTime(`${formattedDate} à ${formattedTime}`);
-    };
+      setCurrentTime(`${formattedDate} à ${formattedTime}`)
+    }
 
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
+    updateTime()
+    const interval = setInterval(updateTime, 1000)
+    return () => clearInterval(interval)
+  }, [weathData])
 
-    return () => clearInterval(interval);
-  }, [weathData]);
+  // --- PRÉPARATION DES DONNÉES POUR L'AFFICHAGE ---
 
-  const sunsetTimestamp = weathData ? weathData.sunset * 1000 : 0;
-  const sunsetPeriod = 30 * 60 * 1000;
-  const isSunset = weathData
-    ? Math.abs(currentTimestamp - sunsetTimestamp) <= sunsetPeriod
-    : false;
-  const isDay = weathData
-    ? currentTimestamp >= weathData.sunrise * 1000 && currentTimestamp < sunsetTimestamp - sunsetPeriod
-    : false;
+  const isFavorite = weathData && favorites.some(
+    item => item.toLowerCase() === `${weathData.location}, ${weathData.country}`.toLowerCase()
+  )
 
-  const isFavorite = weathData && favorites.some(item => item.toLowerCase() === `${weathData.location}, ${weathData.country}`.toLowerCase());
-  const dailyForecast = forecastData
-    ? Object.values(forecastData.list.reduce((days, item) => {
-        const date = item.dt_txt.split(' ')[0];
-        if (!days[date]) days[date] = [];
-        days[date].push(item);
-        return days;
-      }, {})).slice(1, 6).map(day => ({
-        date: day[0].dt,
-        min: Math.round(Math.min(...day.map(item => item.main.temp_min))),
-        max: Math.round(Math.max(...day.map(item => item.main.temp_max))),
-        description: day[Math.floor(day.length / 2)].weather[0].description,
-        icon: getWeatherIcon(day[Math.floor(day.length / 2)].weather[0].icon).icon
-      }))
-    : [];
-  const hourlyForecast = forecastData ? forecastData.list.slice(0, 8) : [];
+  // Prévisions horaires (8 prochaines heures)
+  const hourlyForecast = forecastData?.hourly ? 
+    forecastData.hourly.time.slice(0, 8).map((time, index) => ({
+      dt: new Date(time).getTime() / 1000,
+      temp: Math.round(forecastData.hourly.temperature_2m[index]),
+      weatherCode: forecastData.hourly.weathercode[index] || 0,
+      description: getWeatherInfo(forecastData.hourly.weathercode[index] || 0, 1).description,
+      icon: getWeatherInfo(forecastData.hourly.weathercode[index] || 0, 1).icon,
+      pop: (forecastData.hourly.precipitation_probability?.[index] || 0) / 100
+    })) : []
+
+  // Prévisions quotidiennes (5 prochains jours)
+  const dailyForecast = forecastData?.daily ? 
+    forecastData.daily.time.slice(0, 5).map((date, index) => ({
+      date: new Date(date).getTime() / 1000,
+      max: Math.round(forecastData.daily.temperature_2m_max[index]),
+      min: Math.round(forecastData.daily.temperature_2m_min[index]),
+      weatherCode: forecastData.daily.weathercode[index] || 0,
+      description: getWeatherInfo(forecastData.daily.weathercode[index] || 0, 1).description,
+      icon: getWeatherInfo(forecastData.daily.weathercode[index] || 0, 1).icon
+    })) : []
+
+  // Déterminer le moment de la journée
+  const isDay = weathData?.weatherCode ? 
+    (() => {
+      const now = Math.floor(Date.now() / 1000)
+      const sunrise = weathData.sunrise
+      const sunset = weathData.sunset
+      return now >= sunrise && now < sunset
+    })() : true
+
+  const isSunset = weathData?.weatherCode ? 
+    (() => {
+      const now = Math.floor(Date.now() / 1000)
+      const sunset = weathData.sunset
+      const sunsetPeriod = 30 * 60 // 30 minutes en secondes
+      return Math.abs(now - sunset) <= sunsetPeriod
+    })() : false
+
+  // --- RENDU ---
 
   return (
     <>
       <div
-        className={`background-day ${isDay ? 'visible' : ''}`}
+        className={`background-day ${isDay && !isSunset ? 'visible' : ''}`}
         style={{ backgroundImage: `url("${terre_jour}")` }}
         aria-hidden="true"
-      ></div>
+      />
       <div
         className={`background-sunset ${isSunset ? 'visible' : ''}`}
         style={{ backgroundImage: `url("${soleil_couchant}")` }}
         aria-hidden="true"
-      ></div>
-      {/* Étoiles scintillantes */}
-      <div className="stars"></div>
-      
+      />
+      <div className="stars" />
+
       <div className='weather-container'>
         <div className='weather'>
           <div className="brand-logo">
             <img src={ilimi_group_logo} alt="Logo Ilimi Group" />
           </div>
+
           <div className="search-wrapper" ref={suggestionsRef}>
             <div className="search-bar">
-              <input 
+              <input
                 ref={inputRef}
-                type="text" 
+                type="text"
                 placeholder='Rechercher une ville...'
                 value={searchValue}
                 onChange={handleInputChange}
                 onKeyPress={handleKeyPress}
                 onFocus={() => {
                   if (searchValue.length >= 2) {
-                    fetchSuggestions(searchValue);
+                    fetchSuggestions(searchValue)
                   }
                 }}
               />
@@ -330,26 +423,47 @@ const Meteo = () => {
             </div>
 
             <div className="search-actions">
-              <button type="button" onClick={locateUser} className="secondary-btn">⌖ Ma position</button>
+              <button type="button" onClick={locateUser} className="secondary-btn">
+                📍 Ma position
+              </button>
+
               {searchHistory.length > 0 && (
                 <div className="quick-searches">
                   <span>Récentes</span>
-                  {searchHistory.map(city => <button type="button" key={city} onClick={() => searchFromHistory(city)}>{city}</button>)}
-                  <button type="button" className="clear-history" onClick={() => { setSearchHistory([]); localStorage.removeItem('meteo-history'); }}>Effacer</button>
+                  {searchHistory.map(city => (
+                    <button type="button" key={city} onClick={() => searchFromHistory(city)}>
+                      {city}
+                    </button>
+                  ))}
+                  <button 
+                    type="button" 
+                    className="clear-history" 
+                    onClick={() => { 
+                      setSearchHistory([])
+                      localStorage.removeItem('meteo-history')
+                    }}
+                  >
+                    Effacer
+                  </button>
                 </div>
               )}
+
               {favorites.length > 0 && (
                 <div className="quick-searches favorites-list">
                   <span>Favoris</span>
-                  {favorites.map(city => <button type="button" key={city} onClick={() => searchFromHistory(city)}>{city} ★</button>)}
+                  {favorites.map(city => (
+                    <button type="button" key={city} onClick={() => searchFromHistory(city)}>
+                      {city} ★
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
-            
+
             {showSuggestions && suggestions.length > 0 && (
               <div className="suggestions-list">
                 {suggestions.map((city, index) => (
-                  <div 
+                  <div
                     key={index}
                     className="suggestion-item"
                     onClick={() => handleSelectSuggestion(city)}
@@ -367,20 +481,21 @@ const Meteo = () => {
 
           {loading ? (
             <div className="loading">
-              <div className="loading-spinner"></div>
+              <div className="loading-spinner" />
               <div className="loading-text">Chargement...</div>
             </div>
           ) : weathData ? (
             <>
               <div className="weather-main">
                 <div className="weather-icon-container">
-                  {(!isDay && !isSunset && weathData.iconCode.startsWith('01')) ? (
+                  {(!isDay && weathData.iconCode?.startsWith('01')) ? (
                     <div className="night-icon" aria-label="Nuit">🌙</div>
                   ) : (
                     <img src={weathData.icon} alt="weather" className='weather-icon' />
                   )}
                   <div className="weather-emoji">{weathData.emoji}</div>
                 </div>
+
                 <p className='temperature'>
                   {weathData.temperature}<span>°C</span>
                 </p>
@@ -391,15 +506,21 @@ const Meteo = () => {
                     {isSunset ? ' 🌅' : isDay ? ' ☀️' : ' 🌙'}
                   </span>
                 </p>
+
                 <div className='time-display'>
                   <span className='time-label'>Heure locale</span>
                   <time>{currentTime}</time>
                 </div>
-                <button type="button" className={`favorite-btn ${isFavorite ? 'active' : ''}`} onClick={toggleFavorite}>
+
+                <button 
+                  type="button" 
+                  className={`favorite-btn ${isFavorite ? 'active' : ''}`} 
+                  onClick={toggleFavorite}
+                >
                   {isFavorite ? '★ Ville favorite' : '☆ Ajouter aux favoris'}
                 </button>
               </div>
-              
+
               <div className="weather-details">
                 <div className="detail-card">
                   <img src={humidity_icon} alt="humidity" />
@@ -415,39 +536,60 @@ const Meteo = () => {
                     <span>Vent</span>
                   </div>
                 </div>
-                <div className="detail-card detail-card-text"><span>Ressentie</span><p>{weathData.feelsLike}°C</p></div>
-                <div className="detail-card detail-card-text"><span>Pression</span><p>{weathData.pressure} hPa</p></div>
-                <div className="detail-card detail-card-text"><span>Visibilité</span><p>{weathData.visibility} km</p></div>
-                <div className="detail-card detail-card-text"><span>Lever / coucher</span><p>{formatLocalTime(weathData.sunrise, weathData.timezone, { hour: '2-digit', minute: '2-digit' })} / {formatLocalTime(weathData.sunset, weathData.timezone, { hour: '2-digit', minute: '2-digit' })}</p></div>
+                <div className="detail-card detail-card-text">
+                  <span>Ressentie</span>
+                  <p>{weathData.feelsLike}°C</p>
+                </div>
+                <div className="detail-card detail-card-text">
+                  <span>Pression</span>
+                  <p>{weathData.pressure} hPa</p>
+                </div>
+                <div className="detail-card detail-card-text">
+                  <span>Visibilité</span>
+                  <p>{weathData.visibility} km</p>
+                </div>
+                <div className="detail-card detail-card-text">
+                  <span>Lever / coucher</span>
+                  <p>
+                    {formatLocalTime(weathData.sunrise, weathData.timezone, { hour: '2-digit', minute: '2-digit' })} / 
+                    {formatLocalTime(weathData.sunset, weathData.timezone, { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
               </div>
 
-              <section className="forecast-section">
-                <h2>Prévisions horaires</h2>
-                <div className="forecast-scroll">
-                  {hourlyForecast.map(item => (
-                    <div className="forecast-item" key={item.dt}>
-                      <span>{formatLocalTime(item.dt, forecastData.city.timezone, { hour: '2-digit', minute: '2-digit' })}</span>
-                      <img src={getWeatherIcon(item.weather[0].icon).icon} alt={item.weather[0].description} />
-                      <strong>{Math.round(item.main.temp)}°</strong>
-                      {item.pop > 0 && <small>☂ {Math.round(item.pop * 100)}%</small>}
-                    </div>
-                  ))}
-                </div>
-              </section>
+              {hourlyForecast.length > 0 && (
+                <section className="forecast-section">
+                  <h2>Prévisions horaires</h2>
+                  <div className="forecast-scroll">
+                    {hourlyForecast.map((item, index) => (
+                      <div className="forecast-item" key={index}>
+                        <span>{formatLocalTime(item.dt, weathData.timezone, { hour: '2-digit', minute: '2-digit' })}</span>
+                        <img src={item.icon} alt={item.description} />
+                        <strong>{item.temp}°</strong>
+                        {item.pop > 0 && <small>☂ {Math.round(item.pop * 100)}%</small>}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
 
-              <section className="forecast-section">
-                <h2>Les prochains jours</h2>
-                <div className="daily-forecast">
-                  {dailyForecast.map(day => (
-                    <div className="daily-item" key={day.date}>
-                      <span>{formatLocalTime(day.date, forecastData.city.timezone, { weekday: 'short', day: 'numeric', month: 'short' })}</span>
-                      <img src={day.icon} alt={day.description} />
-                      <strong>{day.max}° / {day.min}°</strong>
-                      <small>{day.description}</small>
-                    </div>
-                  ))}
-                </div>
-              </section>
+              {dailyForecast.length > 0 && (
+                <section className="forecast-section">
+                  <h2>Les prochains jours</h2>
+                  <div className="daily-forecast">
+                    {dailyForecast.map((day, index) => (
+                      <div className="daily-item" key={index}>
+                        <span>
+                          {formatLocalTime(day.date, weathData.timezone, { weekday: 'short', day: 'numeric', month: 'short' })}
+                        </span>
+                        <img src={day.icon} alt={day.description} />
+                        <strong>{day.max}° / {day.min}°</strong>
+                        <small>{day.description}</small>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
             </>
           ) : (
             <div className="no-data">Aucune donnée disponible</div>

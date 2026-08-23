@@ -7,6 +7,7 @@
 html, body {
   min-height: 100vh;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 body {
@@ -14,9 +15,9 @@ body {
   min-height: 100vh;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   position: relative;
-  padding: 20px;
+  padding: clamp(12px, 3vw, 32px);
   background-image: url('../assets/espace/nasa-Q1p7bh3SHj8-unsplash.jpg');
   background-size: cover;
   background-position: center;
@@ -140,7 +141,7 @@ body:has(.background-sunset.visible) .stars {
 .weather-container {
   width: 100%;
   max-width: 480px;
-  padding: 20px;
+  padding: 0;
   position: relative;
   display: flex;
   flex-wrap: wrap;
@@ -151,24 +152,21 @@ body:has(.background-sunset.visible) .stars {
 
 .weather {
   width: 100%;
+  min-width: 0;
   margin: 0 auto;
   background: rgba(0, 0, 0, 0.46);
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
-
   transition:
     transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
     background 0.4s ease,
     box-shadow 0.4s ease;
-
   border-radius: 30px;
   padding: 40px 35px;
-
   box-shadow:
     0 25px 80px rgba(0, 0, 0, 0.6),
     0 0 0 1px rgba(255, 255, 255, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
-
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -227,6 +225,7 @@ body:has(.background-sunset.visible) .stars {
   outline: none;
   color: rgba(255, 255, 255, 0.9);
   font-weight: 400;
+  min-width: 0;
 }
 
 .search-bar input::placeholder {
@@ -530,6 +529,10 @@ body:has(.background-sunset.visible) .stars {
   border-radius: 50px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(10px);
+  max-width: 100%;
+  flex-wrap: wrap;
+  justify-content: center;
+  overflow-wrap: anywhere;
 }
 
 .time-indicator {
@@ -598,6 +601,7 @@ body:has(.background-sunset.visible) .stars {
   font-weight: 300;
   color: rgba(255, 255, 255, 0.95);
   line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .detail-card span {
@@ -640,6 +644,7 @@ body:has(.background-sunset.visible) .stars {
   padding: 2px 2px 8px;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+  justify-content: flex-start;
 }
 
 .forecast-item,
@@ -699,8 +704,12 @@ body:has(.background-sunset.visible) .stars {
 
 /* Responsive */
 @media (max-width: 500px) {
+  body {
+    padding: 10px;
+  }
+
   .weather {
-    padding: 30px 22px;
+    padding: 28px clamp(14px, 5vw, 22px);
     border-radius: 24px;
   }
 
@@ -740,6 +749,11 @@ body:has(.background-sunset.visible) .stars {
   .weather-details {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
+  }
+
+  .secondary-btn,
+  .favorite-btn {
+    width: 100%;
   }
 
   .search-bar input {
@@ -785,6 +799,8 @@ body:has(.background-sunset.visible) .stars {
   .forecast-scroll,
   .daily-forecast {
     justify-content: flex-start;
+    margin-inline: -4px;
+    padding-inline: 4px;
   }
 }
 
@@ -818,6 +834,7 @@ body:has(.background-sunset.visible) .stars {
 
   .location {
     font-size: 17px;
+    padding-inline: 12px;
   }
 
   .search-bar input {
@@ -832,5 +849,48 @@ body:has(.background-sunset.visible) .stars {
 
   .weather-details {
     grid-template-columns: 1fr;
+  }
+
+  .time-display time {
+    font-size: 14px;
+  }
+
+  .suggestion-item {
+    gap: 7px;
+    padding-inline: 12px;
+  }
+
+  .city-state,
+  .city-country {
+    font-size: 11px;
+  }
+
+  .city-country {
+    padding-inline: 8px;
+  }
+}
+
+@media (max-height: 700px) and (min-width: 501px) {
+  body {
+    align-items: flex-start;
+  }
+
+  .weather-container {
+    margin-block: 12px;
+  }
+
+  .weather {
+    padding-block: 28px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }
