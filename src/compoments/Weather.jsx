@@ -24,7 +24,6 @@ const Meteo = () => {
   const [currentTimestamp, setCurrentTimestamp] = useState(Date.now())
   const [searchHistory, setSearchHistory] = useState(() => JSON.parse(localStorage.getItem('meteo-history') || '[]'))
   const [favorites, setFavorites] = useState(() => JSON.parse(localStorage.getItem('meteo-favorites') || '[]'))
-  const [coordinates, setCoordinates] = useState(null)
   const inputRef = useRef(null)
   const suggestionsRef = useRef(null)
 
@@ -71,18 +70,26 @@ const Meteo = () => {
       99: { description: 'Orage avec grêle forte', emoji: '⛈️', icon: rain_icon }
     }
 
-    const base = codes[weatherCode] || { description: 'Météo inconnue', emoji: '🌤️', icon: clear_icon }
-    const iconCode = isDay ? 'd' : 'n'
+    const base = codes[weatherCode] || { 
+      description: 'Météo inconnue', 
+      emoji: '🌤️', 
+      icon: clear_icon 
+    }
+    
+    const iconSuffix = isDay ? 'd' : 'n'
+    const codeNumber = Object.keys(codes).find(key => codes[key] === base) || '01'
+    const iconCode = `${codeNumber}${iconSuffix}`
     
     return {
       ...base,
-      iconCode: `${Object.keys(codes).find(key => codes[key] === base) || '01'}${iconCode}`
+      iconCode: iconCode
     }
   }
 
   // --- GESTION DES FAVORIS ET HISTORIQUE ---
 
   const saveSearch = (city) => {
+    if (!city) return
     const nextHistory = [city, ...searchHistory.filter(item => item.toLowerCase() !== city.toLowerCase())].slice(0, 6)
     setSearchHistory(nextHistory)
     localStorage.setItem('meteo-history', JSON.stringify(nextHistory))
@@ -102,7 +109,7 @@ const Meteo = () => {
   // --- RECHERCHE ET MÉTÉO ---
 
   const search = async (city, coords = null) => {
-    if (!city.trim() && !coords) {
+    if (!city?.trim() && !coords) {
       setError('Veuillez entrer une ville')
       return
     }
@@ -112,13 +119,12 @@ const Meteo = () => {
     setShowSuggestions(false)
 
     try {
-      let lat, lon, cityName, countryName
+      let lat, lon, cityName = '', countryName = ''
 
       if (coords) {
         lat = coords.lat
         lon = coords.lon
       } else {
-        // Géocodage avec Open-Meteo
         const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=fr`
         const geoResponse = await fetch(geoUrl)
         const geoData = await geoResponse.json()
@@ -130,11 +136,10 @@ const Meteo = () => {
         const location = geoData.results[0]
         lat = location.latitude
         lon = location.longitude
-        cityName = location.name
+        cityName = location.name || ''
         countryName = location.country || ''
       }
 
-      // Obtenir la météo avec Open-Meteo
       const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,relativehumidity_2m,apparent_temperature,precipitation_probability,weathercode,windspeed_10m&daily=weathercode,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=auto&forecast_days=7`
       
       const response = await fetch(weatherUrl)
@@ -144,7 +149,7 @@ const Meteo = () => {
         throw new Error('Données météo indisponibles')
       }
 
-      // Si on n'a pas encore le nom de la ville
+      // Si on n'a pas le nom de la ville (géolocalisation)
       if (!cityName) {
         const reverseGeoUrl = `https://geocoding-api.open-meteo.com/v1/search?latitude=${lat}&longitude=${lon}&count=1`
         const reverseResponse = await fetch(reverseGeoUrl)
@@ -153,27 +158,28 @@ const Meteo = () => {
         countryName = reverseData.results?.[0]?.country || ''
       }
 
-      const weatherCode = data.current_weather.weathercode
+      const weatherCode = data.current_weather.weathercode || 0
       const isDay = data.current_weather.is_day || 1
       const weatherInfo = getWeatherInfo(weatherCode, isDay)
 
+      // Construire l'objet météo avec des valeurs par défaut
       const currentWeather = {
-        humidity: data.hourly?.relativehumidity_2m?.[0] || 0,
-        windSpeed: Math.round(data.current_weather.windspeed || 0),
-        temperature: Math.round(data.current_weather.temperature),
-        feelsLike: Math.round(data.hourly?.apparent_temperature?.[0] || data.current_weather.temperature),
+        humidity: data.hourly?.relativehumidity_2m?.[0] ?? 0,
+        windSpeed: Math.round(data.current_weather.windspeed ?? 0),
+        temperature: Math.round(data.current_weather.temperature ?? 0),
+        feelsLike: Math.round(data.hourly?.apparent_temperature?.[0] ?? data.current_weather.temperature ?? 0),
         pressure: 1013,
         visibility: 10,
-        location: cityName,
-        icon: weatherInfo.icon,
-        emoji: weatherInfo.emoji,
-        country: countryName,
-        description: weatherInfo.description,
-        iconCode: weatherInfo.iconCode,
+        location: cityName || 'Ville inconnue',
+        icon: weatherInfo.icon || clear_icon,
+        emoji: weatherInfo.emoji || '🌤️',
+        country: countryName || '',
+        description: weatherInfo.description || 'Météo inconnue',
+        iconCode: weatherInfo.iconCode || '01d',
         timezone: data.timezone_abbreviation || 'UTC',
         timezoneOffset: data.timezone_offset || 0,
-        sunrise: new Date(data.daily.sunrise[0]).getTime() / 1000,
-        sunset: new Date(data.daily.sunset[0]).getTime() / 1000,
+        sunrise: data.daily?.sunrise?.[0] ? new Date(data.daily.sunrise[0]).getTime() / 1000 : Math.floor(Date.now() / 1000),
+        sunset: data.daily?.sunset?.[0] ? new Date(data.daily.sunset[0]).getTime() / 1000 : Math.floor(Date.now() / 1000) + 43200,
         weatherCode: weatherCode,
         lat: lat,
         lon: lon
@@ -181,11 +187,11 @@ const Meteo = () => {
 
       setWeathData(currentWeather)
       setForecastData(data)
-      setCoordinates({ lat, lon })
       setSearchValue(`${cityName}, ${countryName}`)
       saveSearch(cityName)
 
     } catch (error) {
+      console.error('Erreur de recherche:', error)
       setError(error.message || 'Erreur lors de la recherche')
       setWeathData(null)
       setForecastData(null)
@@ -197,7 +203,7 @@ const Meteo = () => {
   // --- SUGGESTIONS ---
 
   const fetchSuggestions = async (query) => {
-    if (!query.trim() || query.length < 2) {
+    if (!query?.trim() || query.length < 2) {
       setSuggestions([])
       setShowSuggestions(false)
       return
@@ -210,12 +216,12 @@ const Meteo = () => {
 
       if (data.results && data.results.length > 0) {
         const formattedSuggestions = data.results.map(city => ({
-          name: city.name,
+          name: city.name || '',
           country: city.country || '',
           state: city.admin1 || city.admin2 || '',
           lat: city.latitude,
           lon: city.longitude,
-          display: `${city.name}${city.admin1 ? `, ${city.admin1}` : ''}${city.country ? `, ${city.country}` : ''}`
+          display: `${city.name || ''}${city.admin1 ? `, ${city.admin1}` : ''}${city.country ? `, ${city.country}` : ''}`
         }))
         setSuggestions(formattedSuggestions)
         setShowSuggestions(true)
@@ -239,15 +245,20 @@ const Meteo = () => {
   }
 
   const handleSelectSuggestion = (city) => {
-    setSearchValue(city.display)
+    if (!city) return
     setShowSuggestions(false)
     setSuggestions([])
-    search(city.name, { lat: city.lat, lon: city.lon })
+    setSearchValue(city.display || city.name || '')
+    search(city.name || '', { lat: city.lat, lon: city.lon })
   }
 
   const handleSearch = () => {
     const city = inputRef.current?.value || searchValue
-    search(city)
+    if (city?.trim()) {
+      search(city)
+    } else {
+      setError('Veuillez entrer une ville')
+    }
   }
 
   const handleKeyPress = (e) => {
@@ -261,8 +272,10 @@ const Meteo = () => {
   }
 
   const searchFromHistory = (city) => {
-    setSearchValue(city)
-    search(city)
+    if (city?.trim()) {
+      setSearchValue(city)
+      search(city)
+    }
   }
 
   const locateUser = () => {
@@ -272,19 +285,25 @@ const Meteo = () => {
     }
 
     setLoading(true)
+    setError('')
+    
     navigator.geolocation.getCurrentPosition(
-      async ({ coords }) => {
+      async (position) => {
         try {
-          await search('', { lat: coords.latitude, lon: coords.longitude })
+          const { latitude, longitude } = position.coords
+          await search('', { lat: latitude, lon: longitude })
         } catch (error) {
+          console.error('Erreur de géolocalisation:', error)
           setError(error.message || 'Impossible de trouver votre position')
           setLoading(false)
         }
       },
-      () => {
+      (error) => {
+        console.error('Erreur de géolocalisation:', error)
         setError('Autorisation de localisation refusée')
         setLoading(false)
-      }
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
     )
   }
 
@@ -293,9 +312,13 @@ const Meteo = () => {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (suggestionsRef.current && !suggestionsRef.current.contains(event.target)) {
-        setShowSuggestions(false)
+        const isSuggestionItem = event.target.closest('.suggestion-item')
+        if (!isSuggestionItem) {
+          setShowSuggestions(false)
+        }
       }
     }
+    
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
@@ -342,41 +365,41 @@ const Meteo = () => {
   )
 
   // Prévisions horaires (8 prochaines heures)
-  const hourlyForecast = forecastData?.hourly ? 
+  const hourlyForecast = forecastData?.hourly?.time ? 
     forecastData.hourly.time.slice(0, 8).map((time, index) => ({
       dt: new Date(time).getTime() / 1000,
-      temp: Math.round(forecastData.hourly.temperature_2m[index]),
-      weatherCode: forecastData.hourly.weathercode[index] || 0,
-      description: getWeatherInfo(forecastData.hourly.weathercode[index] || 0, 1).description,
-      icon: getWeatherInfo(forecastData.hourly.weathercode[index] || 0, 1).icon,
-      pop: (forecastData.hourly.precipitation_probability?.[index] || 0) / 100
+      temp: Math.round(forecastData.hourly.temperature_2m?.[index] ?? 0),
+      weatherCode: forecastData.hourly.weathercode?.[index] ?? 0,
+      description: getWeatherInfo(forecastData.hourly.weathercode?.[index] ?? 0, 1).description,
+      icon: getWeatherInfo(forecastData.hourly.weathercode?.[index] ?? 0, 1).icon,
+      pop: (forecastData.hourly.precipitation_probability?.[index] ?? 0) / 100
     })) : []
 
   // Prévisions quotidiennes (5 prochains jours)
-  const dailyForecast = forecastData?.daily ? 
+  const dailyForecast = forecastData?.daily?.time ? 
     forecastData.daily.time.slice(0, 5).map((date, index) => ({
       date: new Date(date).getTime() / 1000,
-      max: Math.round(forecastData.daily.temperature_2m_max[index]),
-      min: Math.round(forecastData.daily.temperature_2m_min[index]),
-      weatherCode: forecastData.daily.weathercode[index] || 0,
-      description: getWeatherInfo(forecastData.daily.weathercode[index] || 0, 1).description,
-      icon: getWeatherInfo(forecastData.daily.weathercode[index] || 0, 1).icon
+      max: Math.round(forecastData.daily.temperature_2m_max?.[index] ?? 0),
+      min: Math.round(forecastData.daily.temperature_2m_min?.[index] ?? 0),
+      weatherCode: forecastData.daily.weathercode?.[index] ?? 0,
+      description: getWeatherInfo(forecastData.daily.weathercode?.[index] ?? 0, 1).description,
+      icon: getWeatherInfo(forecastData.daily.weathercode?.[index] ?? 0, 1).icon
     })) : []
 
   // Déterminer le moment de la journée
-  const isDay = weathData?.weatherCode ? 
+  const isDay = weathData ? 
     (() => {
       const now = Math.floor(Date.now() / 1000)
-      const sunrise = weathData.sunrise
-      const sunset = weathData.sunset
+      const sunrise = weathData.sunrise || 0
+      const sunset = weathData.sunset || 0
       return now >= sunrise && now < sunset
     })() : true
 
-  const isSunset = weathData?.weatherCode ? 
+  const isSunset = weathData ? 
     (() => {
       const now = Math.floor(Date.now() / 1000)
-      const sunset = weathData.sunset
-      const sunsetPeriod = 30 * 60 // 30 minutes en secondes
+      const sunset = weathData.sunset || 0
+      const sunsetPeriod = 30 * 60
       return Math.abs(now - sunset) <= sunsetPeriod
     })() : false
 
@@ -412,7 +435,7 @@ const Meteo = () => {
                 onChange={handleInputChange}
                 onKeyPress={handleKeyPress}
                 onFocus={() => {
-                  if (searchValue.length >= 2) {
+                  if (searchValue?.length >= 2) {
                     fetchSuggestions(searchValue)
                   }
                 }}
@@ -468,9 +491,9 @@ const Meteo = () => {
                     className="suggestion-item"
                     onClick={() => handleSelectSuggestion(city)}
                   >
-                    <span className="city-name">{city.name}</span>
+                    <span className="city-name">{city.name || 'Ville'}</span>
                     {city.state && <span className="city-state">{city.state}</span>}
-                    <span className="city-country">{city.country}</span>
+                    <span className="city-country">{city.country || ''}</span>
                   </div>
                 ))}
               </div>
@@ -509,7 +532,7 @@ const Meteo = () => {
 
                 <div className='time-display'>
                   <span className='time-label'>Heure locale</span>
-                  <time>{currentTime}</time>
+                  <time>{currentTime || 'Chargement...'}</time>
                 </div>
 
                 <button 
