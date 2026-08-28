@@ -9,6 +9,7 @@ html, body {
   overflow-y: auto;
   overflow-x: hidden;
   width: 100%;
+  max-width: 100%;
 }
 
 body {
@@ -26,6 +27,7 @@ body {
   background-attachment: fixed;
   animation: rotateEarth 60s linear infinite;
   width: 100%;
+  max-width: 100%;
   overflow-x: hidden;
 }
 
@@ -151,10 +153,15 @@ body:has(.background-sunset.visible) .stars {
   justify-content: center;
   z-index: 3;
   margin: clamp(10px, 2vh, 20px) auto;
+  overflow: hidden;
 }
 
+/* ============================================
+   CORRECTION PRINCIPALE - WEATHER
+   ============================================ */
 .weather {
   width: 100%;
+  max-width: 100%;
   min-width: 0;
   margin: 0 auto;
   background: rgba(0, 0, 0, 0.46);
@@ -171,6 +178,8 @@ body:has(.background-sunset.visible) .stars {
     0 0 0 1px rgba(255, 255, 255, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .weather:hover {
@@ -199,6 +208,9 @@ body:has(.background-sunset.visible) .stars {
 .search-wrapper {
   position: relative;
   margin-bottom: clamp(20px, 4vw, 35px);
+  width: 100%;
+  max-width: 100%;
+  overflow: visible;
 }
 
 .search-bar {
@@ -209,6 +221,8 @@ body:has(.background-sunset.visible) .stars {
   border-radius: clamp(16px, 3vw, 20px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   transition: all 0.3s ease;
+  width: 100%;
+  max-width: 100%;
 }
 
 .search-bar:focus-within {
@@ -219,6 +233,7 @@ body:has(.background-sunset.visible) .stars {
 
 .search-bar input {
   flex: 1;
+  min-width: 0;
   padding: clamp(12px, 2.5vw, 16px) clamp(14px, 3vw, 24px);
   border: none;
   border-radius: clamp(14px, 2vw, 18px);
@@ -228,8 +243,9 @@ body:has(.background-sunset.visible) .stars {
   outline: none;
   color: rgba(255, 255, 255, 0.9);
   font-weight: 400;
-  min-width: 0;
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .search-bar input::placeholder {
@@ -271,6 +287,8 @@ body:has(.background-sunset.visible) .stars {
   display: grid;
   gap: clamp(8px, 1.5vw, 10px);
   margin-top: clamp(8px, 1.5vw, 12px);
+  width: 100%;
+  max-width: 100%;
 }
 
 .secondary-btn,
@@ -285,6 +303,9 @@ body:has(.background-sunset.visible) .stars {
   transition: background 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
   font-size: clamp(11px, 1.4vw, 13px);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .secondary-btn {
@@ -304,6 +325,8 @@ body:has(.background-sunset.visible) .stars {
   align-items: center;
   flex-wrap: wrap;
   gap: clamp(5px, 1vw, 7px);
+  width: 100%;
+  max-width: 100%;
 }
 
 .quick-searches span {
@@ -317,6 +340,9 @@ body:has(.background-sunset.visible) .stars {
 .quick-searches button {
   padding: clamp(4px, 0.8vw, 6px) clamp(6px, 1.2vw, 10px);
   font-size: clamp(10px, 1.2vw, 12px);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .quick-searches .clear-history {
@@ -326,6 +352,9 @@ body:has(.background-sunset.visible) .stars {
 .favorite-btn {
   margin-top: clamp(12px, 2vw, 18px);
   font-size: clamp(11px, 1.4vw, 13px);
+  width: 100%;
+  max-width: 100%;
+  text-align: center;
 }
 
 .favorite-btn.active {
@@ -351,6 +380,7 @@ body:has(.background-sunset.visible) .stars {
   animation: slideDown 0.3s ease;
   max-height: 60vh;
   overflow-y: auto;
+  width: 100%;
 }
 
 @keyframes slideDown {
@@ -373,6 +403,9 @@ body:has(.background-sunset.visible) .stars {
   transition: 0.2s;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   flex-wrap: wrap;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .suggestion-item:last-child {
@@ -392,11 +425,17 @@ body:has(.background-sunset.visible) .stars {
   font-weight: 600;
   color: rgba(255, 255, 255, 0.95);
   font-size: clamp(14px, 1.6vw, 16px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .city-state {
   color: rgba(255, 255, 255, 0.5);
   font-size: clamp(12px, 1.4vw, 14px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .city-country {
@@ -407,6 +446,7 @@ body:has(.background-sunset.visible) .stars {
   background: rgba(255, 255, 255, 0.08);
   padding: 2px clamp(8px, 1.5vw, 14px);
   border-radius: 20px;
+  flex-shrink: 0;
 }
 
 /* Erreur */
@@ -422,6 +462,10 @@ body:has(.background-sunset.visible) .stars {
   text-align: center;
   animation: slideDown 0.3s ease;
   font-size: clamp(13px, 1.6vw, 15px);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  word-wrap: break-word;
 }
 
 /* Loading */
@@ -432,6 +476,8 @@ body:has(.background-sunset.visible) .stars {
   flex-direction: column;
   align-items: center;
   gap: clamp(14px, 3vw, 20px);
+  width: 100%;
+  max-width: 100%;
 }
 
 .loading-spinner {
@@ -458,12 +504,17 @@ body:has(.background-sunset.visible) .stars {
   padding: clamp(30px, 6vw, 50px) 0;
   color: rgba(255, 255, 255, 0.4);
   font-size: clamp(14px, 1.8vw, 18px);
+  width: 100%;
+  max-width: 100%;
 }
 
 /* Météo principale */
 .weather-main {
   text-align: center;
   margin-bottom: clamp(20px, 4vw, 35px);
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .weather-icon-container {
@@ -526,6 +577,7 @@ body:has(.background-sunset.visible) .stars {
   font-weight: 300;
   letter-spacing: 0.5px;
   text-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+  word-wrap: break-word;
 }
 
 .location {
@@ -557,6 +609,8 @@ body:has(.background-sunset.visible) .stars {
   gap: 4px;
   margin-top: clamp(10px, 2vw, 16px);
   color: rgba(255, 255, 255, 0.92);
+  width: 100%;
+  max-width: 100%;
 }
 
 .time-label {
@@ -572,25 +626,36 @@ body:has(.background-sunset.visible) .stars {
   word-break: break-word;
 }
 
-/* Détails */
+/* ============================================
+   DÉTAILS - CORRIGÉ POUR NE PAS DÉPASSER
+   ============================================ */
+
 .weather-details {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: clamp(10px, 2vw, 15px);
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(8px, 1.5vw, 12px);
   margin-top: 10px;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .detail-card {
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(10px);
-  border-radius: clamp(14px, 2.5vw, 18px);
-  padding: clamp(14px, 2.5vw, 20px) clamp(14px, 2.5vw, 22px);
+  border-radius: clamp(12px, 2vw, 16px);
+  padding: clamp(10px, 1.8vw, 16px) clamp(10px, 1.8vw, 16px);
   display: flex;
   align-items: center;
-  gap: clamp(10px, 2vw, 16px);
+  gap: clamp(6px, 1.2vw, 12px);
   border: 1px solid rgba(255, 255, 255, 0.06);
   transition: all 0.3s ease;
   min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .detail-card:hover {
@@ -599,33 +664,38 @@ body:has(.background-sunset.visible) .stars {
   border-color: rgba(255, 255, 255, 0.1);
 }
 
-.detail-card img {
-  width: clamp(32px, 6vw, 44px);
-  height: clamp(32px, 6vw, 44px);
-  opacity: 0.8;
-  filter: brightness(0) invert(1);
-  flex-shrink: 0;
-}
-
 .detail-card div {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
 }
 
 .detail-card p {
-  font-size: clamp(18px, 3vw, 24px);
+  font-size: clamp(14px, 2.5vw, 20px);
   font-weight: 300;
   color: rgba(255, 255, 255, 0.95);
   line-height: 1.2;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .detail-card span {
-  font-size: clamp(11px, 1.5vw, 14px);
+  font-size: clamp(10px, 1.2vw, 12px);
   color: rgba(255, 255, 255, 0.4);
   font-weight: 300;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.detail-card img {
+  width: clamp(28px, 4.5vw, 38px);
+  height: clamp(28px, 4.5vw, 38px);
+  opacity: 0.8;
+  filter: brightness(0) invert(1);
+  flex-shrink: 0;
 }
 
 .detail-card-text {
@@ -633,16 +703,38 @@ body:has(.background-sunset.visible) .stars {
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  gap: clamp(4px, 1vw, 6px);
+  gap: clamp(2px, 0.5vw, 4px);
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  padding: clamp(6px, 1vw, 10px) clamp(8px, 1.5vw, 12px);
 }
 
 .detail-card-text p {
-  font-size: clamp(14px, 2.5vw, 19px);
+  font-size: clamp(13px, 2.2vw, 17px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+  max-width: 100%;
 }
 
+.detail-card-text span {
+  font-size: clamp(9px, 1.2vw, 12px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Prévisions */
 .forecast-section {
   margin-top: clamp(16px, 3vw, 28px);
   min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .forecast-section h2 {
@@ -663,6 +755,8 @@ body:has(.background-sunset.visible) .stars {
   justify-content: flex-start;
   -webkit-overflow-scrolling: touch;
   scroll-snap-type: x mandatory;
+  width: 100%;
+  max-width: 100%;
 }
 
 .forecast-scroll::-webkit-scrollbar,
@@ -708,6 +802,10 @@ body:has(.background-sunset.visible) .stars {
 .forecast-item span,
 .daily-item span {
   font-size: clamp(10px, 1.4vw, 12px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 .forecast-item strong,
@@ -737,445 +835,416 @@ body:has(.background-sunset.visible) .stars {
   object-fit: contain;
 }
 
-/* === RESPONSIVE AVANCÉ === */
+/* ============================================
+   RESPONSIVE - CORRECTION POUR PETITS ÉCRANS
+   ============================================ */
 
-/* Tablettes et petits écrans */
-@media (max-width: 768px) {
-  body {
-    padding: clamp(8px, 1.5vw, 16px);
-  }
-
-  .weather {
-    padding: clamp(18px, 3vw, 28px);
-    border-radius: clamp(18px, 3vw, 24px);
-  }
-
-  .weather-details {
-    grid-template-columns: repeat(2, 1fr);
-    gap: clamp(8px, 1.5vw, 12px);
-  }
-
-  .forecast-item {
-    flex: 0 0 clamp(65px, 14vw, 75px);
-  }
-  
-  .daily-item {
-    flex-basis: clamp(85px, 16vw, 95px);
-  }
-}
-
-/* Téléphones moyens */
+/* PETITS ÉCRANS (MOINS DE 500px) */
 @media (max-width: 500px) {
   body {
-    padding: clamp(6px, 1.2vw, 10px);
+    padding: 6px !important;
+  }
+
+  .weather-container {
+    max-width: 100% !important;
+    padding: 0 4px !important;
+    margin: 6px auto !important;
   }
 
   .weather {
-    padding: clamp(16px, 3vw, 22px) clamp(12px, 2.5vw, 18px);
-    border-radius: clamp(16px, 3vw, 20px);
+    padding: 14px 10px !important;
+    border-radius: 16px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .brand-logo {
-    margin: clamp(-6px, -1vw, -8px) 0 clamp(14px, 2.5vw, 20px);
+    margin: -4px 0 12px !important;
   }
 
   .brand-logo img {
-    width: min(78%, 190px);
-    max-height: clamp(40px, 6vh, 60px);
+    width: 60% !important;
+    max-height: 40px !important;
   }
 
-  .temperature {
-    font-size: clamp(40px, 10vw, 56px);
-  }
-
-  .temperature span {
-    font-size: clamp(24px, 5vw, 32px);
-  }
-
-  .weather-icon {
-    width: clamp(80px, 18vw, 110px);
-    height: clamp(80px, 18vw, 110px);
-  }
-
-  .night-icon {
-    width: clamp(80px, 18vw, 110px);
-    height: clamp(80px, 18vw, 110px);
-    font-size: clamp(56px, 14vw, 80px);
-  }
-
-  .weather-emoji {
-    font-size: clamp(24px, 5vw, 32px);
-    right: clamp(-8px, -1.5vw, -10px);
-  }
-
-  .weather-details {
-    grid-template-columns: repeat(2, 1fr);
-    gap: clamp(6px, 1.5vw, 10px);
-  }
-
-  .secondary-btn,
-  .favorite-btn {
-    width: 100%;
-    justify-self: stretch;
-    text-align: center;
+  .search-bar {
+    padding: 3px !important;
+    gap: 6px !important;
   }
 
   .search-bar input {
-    padding: clamp(10px, 2vw, 14px) clamp(12px, 2.5vw, 18px);
-    font-size: clamp(13px, 2vw, 15px);
+    padding: 10px 12px !important;
+    font-size: 13px !important;
   }
 
   .search-btn {
-    width: clamp(40px, 8vw, 50px);
-    height: clamp(40px, 8vw, 50px);
+    width: 38px !important;
+    height: 38px !important;
   }
 
   .search-btn img {
-    width: clamp(16px, 3vw, 20px);
-    height: clamp(16px, 3vw, 20px);
+    width: 16px !important;
+    height: 16px !important;
   }
 
-  .suggestion-item {
-    padding: clamp(8px, 1.8vw, 12px) clamp(12px, 2.5vw, 18px);
+  .search-actions {
+    gap: 6px !important;
+    margin-top: 6px !important;
+  }
+
+  .secondary-btn,
+  .quick-searches button,
+  .favorite-btn {
+    font-size: 11px !important;
+    padding: 5px 8px !important;
+  }
+
+  .quick-searches {
+    gap: 4px !important;
+  }
+
+  .quick-searches button {
+    font-size: 10px !important;
+    padding: 3px 6px !important;
+  }
+
+  .weather-main {
+    margin-bottom: 14px !important;
+  }
+
+  .weather-icon {
+    width: 70px !important;
+    height: 70px !important;
+  }
+
+  .night-icon {
+    width: 70px !important;
+    height: 70px !important;
+    font-size: 48px !important;
+  }
+
+  .weather-emoji {
+    font-size: 22px !important;
+    right: -6px !important;
+  }
+
+  .temperature {
+    font-size: 38px !important;
+  }
+
+  .temperature span {
+    font-size: 22px !important;
+  }
+
+  .description {
+    font-size: 15px !important;
+    margin: 4px 0 8px !important;
+  }
+
+  .location {
+    font-size: 13px !important;
+    padding: 4px 10px !important;
+    gap: 4px !important;
+  }
+
+  .time-display {
+    margin-top: 8px !important;
+  }
+
+  .time-display time {
+    font-size: 12px !important;
+  }
+
+  .weather-details {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6px !important;
+    margin-top: 6px !important;
   }
 
   .detail-card {
-    padding: clamp(12px, 2vw, 16px) clamp(12px, 2.5vw, 18px);
-  }
-
-  .detail-card p {
-    font-size: clamp(16px, 3.5vw, 20px);
+    padding: 8px 6px !important;
+    gap: 6px !important;
+    border-radius: 10px !important;
   }
 
   .detail-card img {
-    width: clamp(28px, 5vw, 38px);
-    height: clamp(28px, 5vw, 38px);
+    width: 22px !important;
+    height: 22px !important;
+  }
+
+  .detail-card p {
+    font-size: 13px !important;
+  }
+
+  .detail-card span {
+    font-size: 8px !important;
   }
 
   .detail-card-text {
-    padding: clamp(8px, 1.5vw, 14px);
+    padding: 4px 6px !important;
   }
 
   .detail-card-text p {
-    font-size: clamp(14px, 3vw, 16px);
+    font-size: 11px !important;
+  }
+
+  .detail-card-text span {
+    font-size: 7px !important;
+  }
+
+  .forecast-section {
+    margin-top: 12px !important;
+  }
+
+  .forecast-section h2 {
+    font-size: 13px !important;
+    margin-bottom: 8px !important;
   }
 
   .forecast-scroll,
   .daily-forecast {
-    margin-inline: clamp(-4px, -0.8vw, -8px);
-    padding-inline: clamp(4px, 0.8vw, 8px);
-    gap: clamp(6px, 1.2vw, 8px);
+    gap: 6px !important;
+    padding: 2px 0 6px !important;
   }
 
   .forecast-item {
-    flex: 0 0 clamp(60px, 14vw, 70px);
-    min-height: clamp(100px, 18vh, 115px);
-    padding: clamp(6px, 1vw, 10px) clamp(4px, 0.8vw, 6px);
-  }
-
-  .daily-item {
-    flex-basis: clamp(75px, 16vw, 85px);
-    min-height: clamp(110px, 20vh, 125px);
-  }
-
-  .secondary-btn {
-    font-size: clamp(11px, 1.5vw, 13px);
-  }
-
-  .quick-searches button {
-    font-size: clamp(9px, 1.2vw, 11px);
-    padding: clamp(3px, 0.6vw, 5px) clamp(5px, 1vw, 8px);
-  }
-}
-
-/* Très petits téléphones */
-@media (max-width: 380px) {
-  .weather {
-    padding: clamp(12px, 2.5vw, 16px) clamp(10px, 2vw, 14px);
-    border-radius: clamp(14px, 3vw, 18px);
-  }
-
-  .temperature {
-    font-size: clamp(34px, 9vw, 44px);
-  }
-
-  .temperature span {
-    font-size: clamp(20px, 4.5vw, 28px);
-  }
-
-  .weather-icon {
-    width: clamp(60px, 16vw, 90px);
-    height: clamp(60px, 16vw, 90px);
-  }
-
-  .night-icon {
-    width: clamp(60px, 16vw, 90px);
-    height: clamp(60px, 16vw, 90px);
-    font-size: clamp(44px, 12vw, 64px);
-  }
-
-  .weather-emoji {
-    font-size: clamp(20px, 5vw, 28px);
-  }
-
-  .description {
-    font-size: clamp(14px, 3vw, 18px);
-  }
-
-  .location {
-    font-size: clamp(13px, 2.5vw, 17px);
-    padding-inline: clamp(8px, 2vw, 12px);
-  }
-
-  .search-bar input {
-    font-size: clamp(12px, 2vw, 14px);
-    padding: clamp(8px, 1.8vw, 12px) clamp(10px, 2vw, 14px);
-  }
-
-  .search-btn {
-    width: clamp(36px, 8vw, 46px);
-    height: clamp(36px, 8vw, 46px);
-  }
-
-  .search-btn img {
-    width: clamp(14px, 3vw, 18px);
-    height: clamp(14px, 3vw, 18px);
-  }
-
-  .weather-details {
-    grid-template-columns: 1fr;
-    gap: clamp(6px, 1.2vw, 8px);
-  }
-
-  .time-display time {
-    font-size: clamp(12px, 2vw, 14px);
-  }
-
-  .suggestion-item {
-    gap: clamp(4px, 1vw, 7px);
-    padding-inline: clamp(8px, 2vw, 12px);
-    padding-block: clamp(6px, 1.2vw, 10px);
-  }
-
-  .city-state,
-  .city-country {
-    font-size: clamp(9px, 1.2vw, 11px);
-  }
-
-  .city-country {
-    padding-inline: clamp(4px, 1vw, 8px);
-  }
-
-  .forecast-item {
-    flex: 0 0 clamp(50px, 12vw, 60px);
-    min-height: clamp(90px, 16vh, 100px);
-    padding: clamp(4px, 0.8vw, 6px) clamp(3px, 0.6vw, 4px);
+    flex: 0 0 58px !important;
+    min-height: 90px !important;
+    padding: 6px 3px !important;
   }
 
   .forecast-item img {
-    width: clamp(24px, 5vw, 32px);
-    height: clamp(24px, 5vw, 32px);
+    width: 28px !important;
+    height: 28px !important;
+  }
+
+  .forecast-item span {
+    font-size: 9px !important;
+  }
+
+  .forecast-item strong {
+    font-size: 12px !important;
   }
 
   .daily-item {
-    flex-basis: clamp(65px, 14vw, 75px);
-    min-height: clamp(100px, 18vh, 110px);
-    padding: clamp(4px, 0.8vw, 8px) clamp(3px, 0.6vw, 6px);
+    flex-basis: 72px !important;
+    min-height: 100px !important;
+    padding: 6px 3px !important;
   }
 
   .daily-item img {
-    width: clamp(28px, 6vw, 38px);
-    height: clamp(28px, 6vw, 38px);
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .daily-item strong {
+    font-size: 11px !important;
+  }
+
+  .daily-item span {
+    font-size: 8px !important;
+  }
+
+  .daily-item small {
+    font-size: 7px !important;
+  }
+
+  .favorite-btn {
+    font-size: 11px !important;
+    padding: 5px 8px !important;
+    margin-top: 10px !important;
   }
 
   .error-message {
-    font-size: clamp(12px, 1.8vw, 14px);
-    padding: clamp(8px, 1.5vw, 12px) clamp(10px, 2vw, 16px);
+    font-size: 12px !important;
+    padding: 8px 12px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .suggestion-item {
+    padding: 8px 12px !important;
+    gap: 6px !important;
+  }
+
+  .city-name {
+    font-size: 13px !important;
+  }
+
+  .city-state {
+    font-size: 10px !important;
+  }
+
+  .city-country {
+    font-size: 10px !important;
+    padding: 1px 6px !important;
   }
 }
 
-/* Hauteur d'écran réduite */
-@media (max-height: 700px) and (min-width: 501px) {
+/* TRÈS PETITS ÉCRANS (MOINS DE 380px) */
+@media (max-width: 380px) {
   body {
-    align-items: flex-start;
-  }
-
-  .weather-container {
-    margin-block: clamp(6px, 1.2vh, 12px);
+    padding: 4px !important;
   }
 
   .weather {
-    padding-block: clamp(16px, 3vh, 28px);
-  }
-
-  .brand-logo {
-    margin-bottom: clamp(8px, 1.5vh, 14px);
+    padding: 10px 6px !important;
+    border-radius: 12px !important;
   }
 
   .brand-logo img {
-    max-height: clamp(35px, 5vh, 50px);
-  }
-
-  .weather-main {
-    margin-bottom: clamp(12px, 2vh, 20px);
-  }
-
-  .weather-icon {
-    width: clamp(60px, 12vw, 80px);
-    height: clamp(60px, 12vw, 80px);
-  }
-
-  .temperature {
-    font-size: clamp(32px, 6vw, 48px);
-  }
-
-  .search-wrapper {
-    margin-bottom: clamp(12px, 2vh, 20px);
+    width: 50% !important;
+    max-height: 32px !important;
   }
 
   .search-bar input {
-    padding: clamp(8px, 1.2vh, 12px) clamp(12px, 1.5vw, 18px);
+    padding: 8px 8px !important;
+    font-size: 11px !important;
   }
 
   .search-btn {
-    width: clamp(36px, 6vw, 44px);
-    height: clamp(36px, 6vw, 44px);
+    width: 32px !important;
+    height: 32px !important;
   }
 
-  .weather-details {
-    gap: clamp(6px, 1vh, 10px);
-  }
-
-  .detail-card {
-    padding: clamp(8px, 1.5vh, 14px) clamp(10px, 1.5vw, 16px);
-  }
-
-  .forecast-section {
-    margin-top: clamp(10px, 1.5vh, 16px);
-  }
-
-  .forecast-item,
-  .daily-item {
-    min-height: clamp(80px, 14vh, 100px);
-    padding: clamp(6px, 1vh, 8px) clamp(4px, 0.6vw, 6px);
-  }
-}
-
-/* Orientation paysage sur téléphone */
-@media (max-height: 500px) and (orientation: landscape) {
-  .weather {
-    padding: clamp(10px, 2vh, 16px) clamp(14px, 2vw, 24px);
-  }
-
-  .brand-logo {
-    display: none;
-  }
-
-  .weather-main {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: clamp(8px, 1.5vw, 16px);
-    margin-bottom: clamp(10px, 1.5vh, 16px);
-  }
-
-  .weather-icon-container {
-    flex: 0 0 clamp(50px, 10vw, 70px);
+  .search-btn img {
+    width: 13px !important;
+    height: 13px !important;
   }
 
   .weather-icon {
-    width: clamp(50px, 10vw, 70px);
-    height: clamp(50px, 10vw, 70px);
+    width: 55px !important;
+    height: 55px !important;
+  }
+
+  .night-icon {
+    width: 55px !important;
+    height: 55px !important;
+    font-size: 36px !important;
   }
 
   .temperature {
-    font-size: clamp(28px, 5vw, 40px);
-    margin: 0;
+    font-size: 30px !important;
+  }
+
+  .temperature span {
+    font-size: 18px !important;
   }
 
   .description {
-    font-size: clamp(12px, 2vw, 16px);
-    margin: 0;
+    font-size: 13px !important;
   }
 
   .location {
-    font-size: clamp(12px, 1.8vw, 16px);
-    padding: clamp(4px, 0.8vh, 6px) clamp(8px, 1.5vw, 14px);
-  }
-
-  .search-bar input {
-    padding: clamp(6px, 1vh, 10px) clamp(8px, 1.5vw, 14px);
-    font-size: clamp(12px, 1.8vw, 14px);
-  }
-
-  .search-btn {
-    width: clamp(32px, 6vw, 40px);
-    height: clamp(32px, 6vw, 40px);
+    font-size: 11px !important;
+    padding: 3px 8px !important;
   }
 
   .weather-details {
-    grid-template-columns: repeat(3, 1fr);
-    gap: clamp(4px, 0.8vw, 8px);
+    grid-template-columns: 1fr 1fr !important;
+    gap: 4px !important;
   }
 
   .detail-card {
-    padding: clamp(6px, 1vh, 10px) clamp(8px, 1vw, 12px);
-  }
-
-  .detail-card p {
-    font-size: clamp(12px, 2vw, 16px);
+    padding: 5px 4px !important;
+    gap: 4px !important;
+    border-radius: 8px !important;
   }
 
   .detail-card img {
-    width: clamp(20px, 3vw, 28px);
-    height: clamp(20px, 3vw, 28px);
+    width: 18px !important;
+    height: 18px !important;
   }
 
-  .forecast-section h2 {
-    font-size: clamp(12px, 1.5vw, 14px);
-    margin-bottom: clamp(4px, 0.8vh, 8px);
+  .detail-card p {
+    font-size: 11px !important;
   }
 
-  .forecast-item,
-  .daily-item {
-    flex: 0 0 clamp(45px, 8vw, 60px);
-    min-height: clamp(60px, 10vh, 80px);
-    padding: clamp(4px, 0.6vh, 6px) clamp(2px, 0.4vw, 4px);
+  .detail-card span {
+    font-size: 7px !important;
+  }
+
+  .detail-card-text {
+    padding: 3px 4px !important;
+  }
+
+  .detail-card-text p {
+    font-size: 10px !important;
+  }
+
+  .forecast-item {
+    flex: 0 0 48px !important;
+    min-height: 75px !important;
+    padding: 4px 2px !important;
   }
 
   .forecast-item img {
-    width: clamp(20px, 3vw, 28px);
-    height: clamp(20px, 3vw, 28px);
+    width: 22px !important;
+    height: 22px !important;
+  }
+
+  .forecast-item strong {
+    font-size: 10px !important;
+  }
+
+  .daily-item {
+    flex-basis: 60px !important;
+    min-height: 85px !important;
+    padding: 4px 2px !important;
   }
 
   .daily-item img {
-    width: clamp(24px, 4vw, 32px);
-    height: clamp(24px, 4vw, 32px);
+    width: 26px !important;
+    height: 26px !important;
+  }
+
+  .daily-item strong {
+    font-size: 9px !important;
+  }
+
+  .favorite-btn {
+    font-size: 10px !important;
+    padding: 4px 6px !important;
+  }
+}
+
+/* Tablettes */
+@media (min-width: 501px) and (max-width: 768px) {
+  .weather {
+    padding: 24px 20px !important;
+  }
+
+  .weather-details {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+
+  .detail-card {
+    padding: 14px 16px !important;
   }
 }
 
 /* Grands écrans */
 @media (min-width: 1200px) {
   .weather-container {
-    max-width: 520px;
+    max-width: 520px !important;
   }
 
   .weather {
-    padding: 45px 40px;
+    padding: 45px 40px !important;
   }
 
   .temperature {
-    font-size: 80px;
+    font-size: 80px !important;
   }
 
   .weather-icon {
-    width: 150px;
-    height: 150px;
+    width: 150px !important;
+    height: 150px !important;
   }
 
   .weather-details {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, 1fr) !important;
   }
 }
 

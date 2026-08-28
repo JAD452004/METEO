@@ -21,7 +21,6 @@ const Meteo = () => {
   const [afficherSuggestions, setAfficherSuggestions] = useState(false)
   const [valeurRecherche, setValeurRecherche] = useState('')
   const [heureActuelle, setHeureActuelle] = useState('')
-  const [horodatageActuel, setHorodatageActuel] = useState(Date.now())
   const [historiqueRecherches, setHistoriqueRecherches] = useState(() => JSON.parse(localStorage.getItem('meteo-history') || '[]'))
   const [favoris, setFavoris] = useState(() => JSON.parse(localStorage.getItem('meteo-favorites') || '[]'))
   const refChampSaisie = useRef(null)
@@ -331,8 +330,6 @@ const Meteo = () => {
     if (!donneesMeteo) return
 
     const mettreAJourHeure = () => {
-      setHorodatageActuel(Date.now())
-      
       const maintenant = new Date()
       const decalage = donneesMeteo.decalageFuseau || 0
       const heureLocale = new Date(maintenant.getTime() + decalage * 1000)
