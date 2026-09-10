@@ -134,7 +134,7 @@ body:has(.background-sunset.visible) .stars {
   position: relative;
 
   /* Fond tres leger : simple voile pour lisibilite */
-  background: rgba(17, 20, 31, 0);
+  background: rgba(20, 24, 36, 0);
   -webkit-backdrop-filter: blur(10px) saturate(120%);
   backdrop-filter: blur(10px) saturate(120%);
 
@@ -1280,10 +1280,53 @@ body::before,
   background: rgba(102, 126, 234, 0.2);
 }
 
-/* Le voile et les etoiles ne bloquent pas les clics */
 body::before,
 .stars,
 .background-day,
 .background-sunset {
   pointer-events: none;
+}
+
+/* ============================================
+   FONDS DYNAMIQUES — JOUR / COUCHER
+   ============================================ */
+.background-day,
+.background-sunset {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  opacity: 0;
+  transition: opacity 2.5s ease-in-out;
+  pointer-events: none;
+}
+
+.background-day.visible,
+.background-sunset.visible {
+  opacity: 1;
+}
+
+/* Voile sombre global */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.1);
+  z-index: 1;
+  transition: background 2.5s ease-in-out;
+  pointer-events: none;
+}
+
+body:has(.background-day.visible)::before,
+body:has(.background-sunset.visible)::before {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+body:has(.background-day.visible) .stars,
+body:has(.background-sunset.visible) .stars {
+  opacity: 0;
+  transition: opacity 2.5s ease-in-out;
 }

@@ -195,9 +195,10 @@ const Meteo = () => {
         nomPays = donnees.timezone?.split('/')?.[1]?.replace('_', ' ') || ''
       }
 
+      // ✅ CORRECTION 1 : Utilise is_day de l'API
       const codeMeteo = donnees.current_weather.weathercode || 0
-      const estJour = donnees.current_weather.is_day || 1
-      const infosMeteo = obtenirInfosMeteo(codeMeteo, estJour)
+      const estJourApi = donnees.current_weather.is_day === 1
+      const infosMeteo = obtenirInfosMeteo(codeMeteo, estJourApi ? 1 : 0)
 
       const meteoActuelle = {
         humidite: donnees.hourly?.relativehumidity_2m?.[0] ?? 0,
@@ -224,7 +225,9 @@ const Meteo = () => {
           : Math.floor(Date.now() / 1000) + 43200,
         codeMeteo,
         lat,
-        lon
+        lon,
+        // ✅ NOUVEAU : stocke le jour/nuit de l'API
+        estJourApi
       }
 
       setDonneesMeteo(meteoActuelle)
@@ -467,21 +470,24 @@ const Meteo = () => {
       }))
     : []
 
-  const estJour = donneesMeteo
-    ? (() => {
-        const maintenant = Math.floor(Date.now() / 1000)
-        const lever = donneesMeteo.leverSoleil || 0
-        const coucher = donneesMeteo.coucherSoleil || 0
-        return maintenant >= lever && maintenant < coucher
-      })()
-    : true
+  // ✅ CORRECTION 2 : estJour utilise directement l'API
+  const estJour = donneesMeteo?.estJourApi ?? true
 
+  // ✅ CORRECTION 3 : estCoucherSoleil compare dans le fuseau de la ville
   const estCoucherSoleil = donneesMeteo
     ? (() => {
-        const maintenant = Math.floor(Date.now() / 1000)
-        const coucher = donneesMeteo.coucherSoleil || 0
-        const periodeCoucher = 30 * 60
-        return Math.abs(maintenant - coucher) <= periodeCoucher
+        try {
+          const maintenantLocal = new Date(
+            new Date().toLocaleString('en-US', {
+              timeZone: donneesMeteo.fuseauHoraire || 'UTC'
+            })
+          ).getTime() / 1000
+
+          const ecart = Math.abs(maintenantLocal - (donneesMeteo.coucherSoleil || 0))
+          return ecart <= 30 * 60
+        } catch {
+          return false
+        }
       })()
     : false
 
@@ -491,6 +497,9 @@ const Meteo = () => {
 
   return (
     <>
+      {/* ============================================
+          FONDS DYNAMIQUES (jour / coucher)
+          ============================================ */}
       <div
         className={`background-day ${estJour && !estCoucherSoleil ? 'visible' : ''}`}
         style={{ backgroundImage: `url("${terre_jour}")` }}
