@@ -134,7 +134,7 @@ body:has(.background-sunset.visible) .stars {
   position: relative;
 
   /* Fond tres leger : simple voile pour lisibilite */
-  background: rgba(15, 20, 35, 0.021);
+  background: rgba(15, 20, 35, 0);
   -webkit-backdrop-filter: blur(10px) saturate(120%);
   backdrop-filter: blur(10px) saturate(120%);
 
@@ -994,5 +994,36 @@ body:has(.background-sunset.visible) .stars {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* ============================================
+   CORRECTION MOBILE — FOND
+   ============================================ */
+@media (max-width: 768px) {
+  body {
+    /* Sur mobile, fixed ne marche pas bien */
+    background-attachment: scroll;
+    background-size: cover;
+    background-position: center center;
+    background-color: #0a0e1a; /* couleur de secours */
+  }
+  
+  /* Retirer fixed aussi sur les fonds dynamiques */
+  .background-day,
+  .background-sunset {
+    background-attachment: scroll;
+    background-size: cover;
+    background-position: center center;
+  }
+  
+  /* Reduire le voile sombre sur mobile */
+  body::before {
+    background: rgba(0, 0, 0, 0.05);
+  }
+  
+  body:has(.background-day.visible)::before,
+  body:has(.background-sunset.visible)::before {
+    background: rgba(0, 0, 0, 0.03);
   }
 }
