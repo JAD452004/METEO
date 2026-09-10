@@ -1093,3 +1093,23 @@ body:has(.background-sunset.visible) .stars {
   }
 }
 
+/* ============================================
+   SUGGESTIONS — CLIQUABLES
+   ============================================ */
+.suggestion-item {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.suggestion-item:active {
+  background: rgba(102, 126, 234, 0.35);
+  transform: scale(0.98);
+  transition: transform 0.1s ease;
+}
+
+.suggestion-item:focus {
+  outline: 2px solid rgba(102, 126, 234, 0.7);
+  outline-offset: -2px;
+}
+

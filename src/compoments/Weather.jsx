@@ -30,8 +30,11 @@ const Meteo = () => {
   const [localisationEnCours, setLocalisationEnCours] = useState(false)
   const refChampSaisie = useRef(null)
   const refSuggestions = useRef(null)
+  const refDebounceSuggestions = useRef(null)
 
-  // --- FONCTIONS UTILITAIRES ---
+  // ============================================
+  // FONCTIONS UTILITAIRES
+  // ============================================
 
   const formaterHeureLocale = (timestamp, fuseauHoraire, options = {}) => {
     if (!timestamp) return '--:--'
@@ -87,7 +90,9 @@ const Meteo = () => {
     return { ...base, codeIcone }
   }
 
-  // --- GÉOCODAGE INVERSE (coordonnées → nom de ville) ---
+  // ============================================
+  // GEOCODAGE INVERSE
+  // ============================================
 
   const obtenirNomVilleDepuisCoords = async (lat, lon) => {
     try {
@@ -109,7 +114,9 @@ const Meteo = () => {
     }
   }
 
-  // --- GESTION DES FAVORIS ET HISTORIQUE ---
+  // ============================================
+  // FAVORIS ET HISTORIQUE
+  // ============================================
 
   const enregistrerRecherche = (ville) => {
     if (!ville) return
@@ -132,7 +139,9 @@ const Meteo = () => {
     localStorage.setItem('meteo-favorites', JSON.stringify(nouveauxFavoris))
   }
 
-  // --- RECHERCHE ET MÉTÉO ---
+  // ============================================
+  // RECHERCHE METEO
+  // ============================================
 
   const rechercher = async (ville, coordonnees = null, infoVille = null) => {
     if (!ville?.trim() && !coordonnees) {
@@ -181,7 +190,6 @@ const Meteo = () => {
         throw new Error('Données météo indisponibles')
       }
 
-      // Fallback si vraiment aucun nom
       if (!nomVille) {
         nomVille = 'Ma position'
         nomPays = donnees.timezone?.split('/')?.[1]?.replace('_', ' ') || ''
@@ -234,7 +242,9 @@ const Meteo = () => {
     }
   }
 
-  // --- SUGGESTIONS ---
+  // ============================================
+  // SUGGESTIONS (avec debounce)
+  // ============================================
 
   const rechercherSuggestions = async (requete) => {
     if (!requete?.trim() || requete.length < 2) {
@@ -270,12 +280,24 @@ const Meteo = () => {
     }
   }
 
-  // --- GESTIONNAIRES D'ÉVÉNEMENTS ---
+  // Debounce : attend 300ms apres la derniere frappe
+  const rechercherSuggestionsDebounce = (requete) => {
+    if (refDebounceSuggestions.current) {
+      clearTimeout(refDebounceSuggestions.current)
+    }
+    refDebounceSuggestions.current = setTimeout(() => {
+      rechercherSuggestions(requete)
+    }, 300)
+  }
+
+  // ============================================
+  // GESTIONNAIRES D'EVENEMENTS
+  // ============================================
 
   const gererChangementSaisie = (e) => {
     const valeur = e.target.value
     setValeurRecherche(valeur)
-    rechercherSuggestions(valeur)
+    rechercherSuggestionsDebounce(valeur)
   }
 
   const gererSelectionSuggestion = (ville) => {
@@ -307,6 +329,9 @@ const Meteo = () => {
         gererRecherche()
       }
     }
+    if (e.key === 'Escape') {
+      setAfficherSuggestions(false)
+    }
   }
 
   const rechercherDepuisHistorique = (ville) => {
@@ -316,7 +341,9 @@ const Meteo = () => {
     }
   }
 
-  // --- GÉOLOCALISATION (CORRIGÉE) ---
+  // ============================================
+  // GEOLOCALISATION
+  // ============================================
 
   const localiserUtilisateur = () => {
     if (!navigator.geolocation) {
@@ -332,11 +359,7 @@ const Meteo = () => {
       async (position) => {
         try {
           const { latitude, longitude } = position.coords
-
-          // 1️⃣ Reverse geocoding → nom réel de la ville
           const infoVille = await obtenirNomVilleDepuisCoords(latitude, longitude)
-
-          // 2️⃣ Recherche météo avec coordonnées + nom
           await rechercher('', { lat: latitude, lon: longitude }, infoVille)
         } catch (err) {
           console.error('Erreur de géolocalisation:', err)
@@ -364,15 +387,16 @@ const Meteo = () => {
     )
   }
 
-  // --- EFFETS ---
+  // ============================================
+  // EFFETS
+  // ============================================
 
+  // Fermeture au clic exterieur (SANS casser le clic sur les suggestions)
   useEffect(() => {
     const gererClicExterieur = (evenement) => {
+      // Si le clic est hors du wrapper des suggestions
       if (refSuggestions.current && !refSuggestions.current.contains(evenement.target)) {
-        const estElementSuggestion = evenement.target.closest('.suggestion-item')
-        if (!estElementSuggestion) {
-          setAfficherSuggestions(false)
-        }
+        setAfficherSuggestions(false)
       }
     }
 
@@ -380,11 +404,13 @@ const Meteo = () => {
     return () => document.removeEventListener('mousedown', gererClicExterieur)
   }, [])
 
+  // Chargement initial
   useEffect(() => {
     rechercher('Abidjan')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Horloge locale
   useEffect(() => {
     if (!donneesMeteo) return
 
@@ -414,7 +440,9 @@ const Meteo = () => {
     return () => clearInterval(intervalle)
   }, [donneesMeteo])
 
-  // --- PRÉPARATION DES DONNÉES POUR L'AFFICHAGE ---
+  // ============================================
+  // PREPARATION DES DONNEES
+  // ============================================
 
   const estFavori = donneesMeteo && favoris.some(
     item =>
@@ -422,7 +450,6 @@ const Meteo = () => {
       `${donneesMeteo.localisation}${donneesMeteo.pays ? `, ${donneesMeteo.pays}` : ''}`.toLowerCase()
   )
 
-  // Prévisions horaires (8 prochaines heures)
   const previsionsHoraire = donneesPrevisions?.hourly?.time
     ? donneesPrevisions.hourly.time.slice(0, 8).map((temps, index) => ({
         horodatage: new Date(temps).getTime() / 1000,
@@ -434,7 +461,6 @@ const Meteo = () => {
       }))
     : []
 
-  // Prévisions quotidiennes (5 prochains jours)
   const previsionsQuotidiennes = donneesPrevisions?.daily?.time
     ? donneesPrevisions.daily.time.slice(0, 5).map((date, index) => ({
         date: new Date(date).getTime() / 1000,
@@ -446,7 +472,6 @@ const Meteo = () => {
       }))
     : []
 
-  // Déterminer le moment de la journée
   const estJour = donneesMeteo
     ? (() => {
         const maintenant = Math.floor(Date.now() / 1000)
@@ -465,7 +490,9 @@ const Meteo = () => {
       })()
     : false
 
-  // --- RENDU ---
+  // ============================================
+  // RENDU
+  // ============================================
 
   return (
     <>
@@ -483,10 +510,14 @@ const Meteo = () => {
 
       <div className='weather-container'>
         <div className='weather'>
+
           <div className="brand-logo">
             <img src={ilimi_group_logo} alt="Logo Ilimi Group" />
           </div>
 
+          {/* ============================================
+              BARRE DE RECHERCHE + SUGGESTIONS
+              ============================================ */}
           <div className="search-wrapper" ref={refSuggestions}>
             <div className="search-bar">
               <input
@@ -501,8 +532,9 @@ const Meteo = () => {
                     rechercherSuggestions(valeurRecherche)
                   }
                 }}
+                autoComplete="off"
               />
-              <button onClick={gererRecherche} className="search-btn">
+              <button onClick={gererRecherche} className="search-btn" type="button">
                 <img src={search_icon} alt="Rechercher" />
               </button>
             </div>
@@ -514,7 +546,7 @@ const Meteo = () => {
                 className="secondary-btn"
                 disabled={localisationEnCours}
               >
-                {localisationEnCours ? '⏳ Localisation...' : '📍 Ma position'}
+                {localisationEnCours ? 'Localisation...' : 'Ma position'}
               </button>
 
               {historiqueRecherches.length > 0 && (
@@ -551,20 +583,43 @@ const Meteo = () => {
                       key={ville}
                       onClick={() => rechercherDepuisHistorique(ville)}
                     >
-                      {ville} ★
+                      {ville}
                     </button>
                   ))}
                 </div>
               )}
             </div>
 
+            {/* ============================================
+                LISTE DES SUGGESTIONS (CLIQUABLES)
+                ============================================ */}
             {afficherSuggestions && suggestions.length > 0 && (
               <div className="suggestions-list">
                 {suggestions.map((ville, index) => (
                   <div
-                    key={index}
+                    key={`${ville.nom}-${ville.lat}-${index}`}
                     className="suggestion-item"
-                    onClick={() => gererSelectionSuggestion(ville)}
+                    role="button"
+                    tabIndex={0}
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      gererSelectionSuggestion(ville)
+                    }}
+                    onTouchStart={(e) => {
+                      e.stopPropagation()
+                    }}
+                    onTouchEnd={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      gererSelectionSuggestion(ville)
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        gererSelectionSuggestion(ville)
+                      }
+                    }}
                   >
                     <span className="city-name">{ville.nom || 'Ville'}</span>
                     {ville.region && <span className="city-state">{ville.region}</span>}
@@ -601,10 +656,10 @@ const Meteo = () => {
                 </p>
                 <p className='description'>{donneesMeteo.description}</p>
                 <p className='location'>
-                  📍 {donneesMeteo.localisation}
+                  {donneesMeteo.localisation}
                   {donneesMeteo.pays && `, ${donneesMeteo.pays}`}
                   <span className="time-indicator">
-                    {estCoucherSoleil ? ' 🌅' : estJour ? ' ☀️' : ' 🌙'}
+                    {estCoucherSoleil ? ' coucher' : estJour ? ' jour' : ' nuit'}
                   </span>
                 </p>
 
@@ -618,7 +673,7 @@ const Meteo = () => {
                   className={`favorite-btn ${estFavori ? 'active' : ''}`}
                   onClick={basculerFavori}
                 >
-                  {estFavori ? '★ Ville favorite' : '☆ Ajouter aux favoris'}
+                  {estFavori ? 'Ville favorite' : 'Ajouter aux favoris'}
                 </button>
               </div>
 
@@ -670,7 +725,7 @@ const Meteo = () => {
                         <img src={item.icone} alt={item.description} />
                         <strong>{item.temperature}°</strong>
                         {item.probabilitePluie > 0 && (
-                          <small>☂ {Math.round(item.probabilitePluie * 100)}%</small>
+                          <small>{Math.round(item.probabilitePluie * 100)}%</small>
                         )}
                       </div>
                     ))}
