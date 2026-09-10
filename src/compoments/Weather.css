@@ -134,7 +134,7 @@ body:has(.background-sunset.visible) .stars {
   position: relative;
 
   /* Fond tres leger : simple voile pour lisibilite */
-  background: rgba(15, 20, 35, 0.18);
+  background: rgba(15, 20, 35, 0.021);
   -webkit-backdrop-filter: blur(10px) saturate(120%);
   backdrop-filter: blur(10px) saturate(120%);
 
