@@ -107,9 +107,10 @@ const Meteo = () => {
 
   // --- RECHERCHE ET MÉTÉO ---
 
-  const rechercher = async (ville, coordonnees = null) => {
+  const rechercher = async (ville, coordonnees = null, infoVille = null) => {
     if (!ville?.trim() && !coordonnees) {
       setErreur('Veuillez entrer une ville')
+      setChargement(false)
       return
     }
 
@@ -123,6 +124,11 @@ const Meteo = () => {
       if (coordonnees) {
         lat = coordonnees.lat
         lon = coordonnees.lon
+        // Si on a les infos de la ville, les utiliser
+        if (infoVille) {
+          nomVille = infoVille.nom || ''
+          nomPays = infoVille.pays || ''
+        }
       } else {
         const urlGeo = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(ville)}&count=1&language=fr`
         const reponseGeo = await fetch(urlGeo)
@@ -148,13 +154,10 @@ const Meteo = () => {
         throw new Error('Données météo indisponibles')
       }
 
-      // Si on n'a pas le nom de la ville (géolocalisation)
+      // Si on n'a pas le nom de la ville (géolocalisation), utiliser "Ma position"
       if (!nomVille) {
-        const urlGeoInverse = `https://geocoding-api.open-meteo.com/v1/search?latitude=${lat}&longitude=${lon}&count=1`
-        const reponseGeoInverse = await fetch(urlGeoInverse)
-        const donneesGeoInverse = await reponseGeoInverse.json()
-        nomVille = donneesGeoInverse.results?.[0]?.name || 'Ville inconnue'
-        nomPays = donneesGeoInverse.results?.[0]?.country || ''
+        nomVille = 'Ma position'
+        nomPays = donnees.timezone || ''
       }
 
       const codeMeteo = donnees.current_weather.weathercode || 0
@@ -175,7 +178,7 @@ const Meteo = () => {
         pays: nomPays || '',
         description: infosMeteo.description || 'Météo inconnue',
         codeIcone: infosMeteo.codeIcone || '01d',
-        fuseauHoraire: donnees.timezone_abbreviation || 'UTC',
+        fuseauHoraire: donnees.timezone || 'UTC',
         decalageFuseau: donnees.timezone_offset || 0,
         leverSoleil: donnees.daily?.sunrise?.[0] ? new Date(donnees.daily.sunrise[0]).getTime() / 1000 : Math.floor(Date.now() / 1000),
         coucherSoleil: donnees.daily?.sunset?.[0] ? new Date(donnees.daily.sunset[0]).getTime() / 1000 : Math.floor(Date.now() / 1000) + 43200,
@@ -247,8 +250,8 @@ const Meteo = () => {
     if (!ville) return
     setAfficherSuggestions(false)
     setSuggestions([])
-    setValeurRecherche(ville.affiche || ville.nom || '')
-    rechercher(ville.nom || '', { lat: ville.lat, lon: ville.lon })
+    setValeurRecherche(ville.affichage || ville.nom || '')
+    rechercher(ville.nom || '', { lat: ville.lat, lon: ville.lon }, { nom: ville.nom, pays: ville.pays })
   }
 
   const gererRecherche = () => {
@@ -331,21 +334,21 @@ const Meteo = () => {
 
     const mettreAJourHeure = () => {
       const maintenant = new Date()
-      const decalage = donneesMeteo.decalageFuseau || 0
-      const heureLocale = new Date(maintenant.getTime() + decalage * 1000)
       
       const dateFormatee = new Intl.DateTimeFormat('fr-FR', {
+        timeZone: donneesMeteo.fuseauHoraire || 'UTC',
         weekday: 'long',
         day: '2-digit',
         month: 'long',
         year: 'numeric'
-      }).format(heureLocale)
+      }).format(maintenant)
 
       const heureFormatee = new Intl.DateTimeFormat('fr-FR', {
+        timeZone: donneesMeteo.fuseauHoraire || 'UTC',
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit'
-      }).format(heureLocale)
+      }).format(maintenant)
 
       setHeureActuelle(`${dateFormatee} à ${heureFormatee}`)
     }
@@ -430,7 +433,7 @@ const Meteo = () => {
                 placeholder='Rechercher une ville...'
                 value={valeurRecherche}
                 onChange={gererChangementSaisie}
-                onKeyPress={gererToucheEntree}
+                onKeyDown={gererToucheEntree}
                 onFocus={() => {
                   if (valeurRecherche?.length >= 2) {
                     rechercherSuggestions(valeurRecherche)
