@@ -21,8 +21,13 @@ const Meteo = () => {
   const [afficherSuggestions, setAfficherSuggestions] = useState(false)
   const [valeurRecherche, setValeurRecherche] = useState('')
   const [heureActuelle, setHeureActuelle] = useState('')
-  const [historiqueRecherches, setHistoriqueRecherches] = useState(() => JSON.parse(localStorage.getItem('meteo-history') || '[]'))
-  const [favoris, setFavoris] = useState(() => JSON.parse(localStorage.getItem('meteo-favorites') || '[]'))
+  const [historiqueRecherches, setHistoriqueRecherches] = useState(
+    () => JSON.parse(localStorage.getItem('meteo-history') || '[]')
+  )
+  const [favoris, setFavoris] = useState(
+    () => JSON.parse(localStorage.getItem('meteo-favorites') || '[]')
+  )
+  const [localisationEnCours, setLocalisationEnCours] = useState(false)
   const refChampSaisie = useRef(null)
   const refSuggestions = useRef(null)
 
@@ -69,19 +74,38 @@ const Meteo = () => {
       99: { description: 'Orage avec grêle forte', emoji: '⛈️', icone: rain_icon }
     }
 
-    const base = codes[codeMeteo] || { 
-      description: 'Météo inconnue', 
-      emoji: '🌤️', 
-      icone: clear_icon 
+    const base = codes[codeMeteo] || {
+      description: 'Météo inconnue',
+      emoji: '🌤️',
+      icone: clear_icon
     }
-    
+
     const suffixeJour = estJour ? 'd' : 'n'
     const numeroCode = Object.keys(codes).find(key => codes[key] === base) || '01'
     const codeIcone = `${numeroCode}${suffixeJour}`
-    
-    return {
-      ...base,
-      codeIcone: codeIcone
+
+    return { ...base, codeIcone }
+  }
+
+  // --- GÉOCODAGE INVERSE (coordonnées → nom de ville) ---
+
+  const obtenirNomVilleDepuisCoords = async (lat, lon) => {
+    try {
+      const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=fr`
+      const reponse = await fetch(url)
+      const donnees = await reponse.json()
+
+      return {
+        nom: donnees.city
+          || donnees.locality
+          || donnees.principalSubdivision
+          || 'Ma position',
+        pays: donnees.countryName || '',
+        region: donnees.principalSubdivision || ''
+      }
+    } catch (err) {
+      console.warn('Géocodage inverse échoué:', err)
+      return { nom: 'Ma position', pays: '', region: '' }
     }
   }
 
@@ -89,14 +113,17 @@ const Meteo = () => {
 
   const enregistrerRecherche = (ville) => {
     if (!ville) return
-    const nouvelHistorique = [ville, ...historiqueRecherches.filter(item => item.toLowerCase() !== ville.toLowerCase())].slice(0, 6)
+    const nouvelHistorique = [
+      ville,
+      ...historiqueRecherches.filter(item => item.toLowerCase() !== ville.toLowerCase())
+    ].slice(0, 6)
     setHistoriqueRecherches(nouvelHistorique)
     localStorage.setItem('meteo-history', JSON.stringify(nouvelHistorique))
   }
 
   const basculerFavori = () => {
     if (!donneesMeteo) return
-    const ville = `${donneesMeteo.localisation}, ${donneesMeteo.pays}`
+    const ville = `${donneesMeteo.localisation}${donneesMeteo.pays ? `, ${donneesMeteo.pays}` : ''}`
     const existe = favoris.some(item => item.toLowerCase() === ville.toLowerCase())
     const nouveauxFavoris = existe
       ? favoris.filter(item => item.toLowerCase() !== ville.toLowerCase())
@@ -124,7 +151,7 @@ const Meteo = () => {
       if (coordonnees) {
         lat = coordonnees.lat
         lon = coordonnees.lon
-        // Si on a les infos de la ville, les utiliser
+
         if (infoVille) {
           nomVille = infoVille.nom || ''
           nomPays = infoVille.pays || ''
@@ -146,7 +173,7 @@ const Meteo = () => {
       }
 
       const urlMeteo = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,relativehumidity_2m,apparent_temperature,precipitation_probability,weathercode,windspeed_10m&daily=weathercode,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=auto&forecast_days=7`
-      
+
       const reponse = await fetch(urlMeteo)
       const donnees = await reponse.json()
 
@@ -154,47 +181,52 @@ const Meteo = () => {
         throw new Error('Données météo indisponibles')
       }
 
-      // Si on n'a pas le nom de la ville (géolocalisation), utiliser "Ma position"
+      // Fallback si vraiment aucun nom
       if (!nomVille) {
         nomVille = 'Ma position'
-        nomPays = donnees.timezone || ''
+        nomPays = donnees.timezone?.split('/')?.[1]?.replace('_', ' ') || ''
       }
 
       const codeMeteo = donnees.current_weather.weathercode || 0
       const estJour = donnees.current_weather.is_day || 1
       const infosMeteo = obtenirInfosMeteo(codeMeteo, estJour)
 
-      // Construire l'objet météo avec des valeurs par défaut
       const meteoActuelle = {
         humidite: donnees.hourly?.relativehumidity_2m?.[0] ?? 0,
         vitesseVent: Math.round(donnees.current_weather.windspeed ?? 0),
         temperature: Math.round(donnees.current_weather.temperature ?? 0),
-        ressenti: Math.round(donnees.hourly?.apparent_temperature?.[0] ?? donnees.current_weather.temperature ?? 0),
+        ressenti: Math.round(
+          donnees.hourly?.apparent_temperature?.[0] ?? donnees.current_weather.temperature ?? 0
+        ),
         pression: 1013,
         visibilite: 10,
-        localisation: nomVille || 'Ville inconnue',
+        localisation: nomVille,
         icone: infosMeteo.icone || clear_icon,
         emoji: infosMeteo.emoji || '🌤️',
-        pays: nomPays || '',
+        pays: nomPays,
         description: infosMeteo.description || 'Météo inconnue',
         codeIcone: infosMeteo.codeIcone || '01d',
         fuseauHoraire: donnees.timezone || 'UTC',
         decalageFuseau: donnees.timezone_offset || 0,
-        leverSoleil: donnees.daily?.sunrise?.[0] ? new Date(donnees.daily.sunrise[0]).getTime() / 1000 : Math.floor(Date.now() / 1000),
-        coucherSoleil: donnees.daily?.sunset?.[0] ? new Date(donnees.daily.sunset[0]).getTime() / 1000 : Math.floor(Date.now() / 1000) + 43200,
-        codeMeteo: codeMeteo,
-        lat: lat,
-        lon: lon
+        leverSoleil: donnees.daily?.sunrise?.[0]
+          ? new Date(donnees.daily.sunrise[0]).getTime() / 1000
+          : Math.floor(Date.now() / 1000),
+        coucherSoleil: donnees.daily?.sunset?.[0]
+          ? new Date(donnees.daily.sunset[0]).getTime() / 1000
+          : Math.floor(Date.now() / 1000) + 43200,
+        codeMeteo,
+        lat,
+        lon
       }
 
       setDonneesMeteo(meteoActuelle)
       setDonneesPrevisions(donnees)
-      setValeurRecherche(`${nomVille}, ${nomPays}`)
+      setValeurRecherche(`${nomVille}${nomPays ? `, ${nomPays}` : ''}`)
       enregistrerRecherche(nomVille)
 
-    } catch (erreur) {
-      console.error('Erreur de recherche:', erreur)
-      setErreur(erreur.message || 'Erreur lors de la recherche')
+    } catch (err) {
+      console.error('Erreur de recherche:', err)
+      setErreur(err.message || 'Erreur lors de la recherche')
       setDonneesMeteo(null)
       setDonneesPrevisions(null)
     } finally {
@@ -231,8 +263,8 @@ const Meteo = () => {
         setSuggestions([])
         setAfficherSuggestions(false)
       }
-    } catch (erreur) {
-      console.error('Erreur de suggestions:', erreur)
+    } catch (err) {
+      console.error('Erreur de suggestions:', err)
       setSuggestions([])
       setAfficherSuggestions(false)
     }
@@ -251,7 +283,11 @@ const Meteo = () => {
     setAfficherSuggestions(false)
     setSuggestions([])
     setValeurRecherche(ville.affichage || ville.nom || '')
-    rechercher(ville.nom || '', { lat: ville.lat, lon: ville.lon }, { nom: ville.nom, pays: ville.pays })
+    rechercher(
+      ville.nom || '',
+      { lat: ville.lat, lon: ville.lon },
+      { nom: ville.nom, pays: ville.pays }
+    )
   }
 
   const gererRecherche = () => {
@@ -280,32 +316,51 @@ const Meteo = () => {
     }
   }
 
+  // --- GÉOLOCALISATION (CORRIGÉE) ---
+
   const localiserUtilisateur = () => {
     if (!navigator.geolocation) {
-      setErreur('La géolocalisation n\'est pas disponible sur cet appareil')
+      setErreur("La géolocalisation n'est pas disponible sur cet appareil")
       return
     }
 
+    setLocalisationEnCours(true)
     setChargement(true)
     setErreur('')
-    
+
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         try {
           const { latitude, longitude } = position.coords
-          await rechercher('', { lat: latitude, lon: longitude })
-        } catch (erreur) {
-          console.error('Erreur de géolocalisation:', erreur)
-          setErreur(erreur.message || 'Impossible de trouver votre position')
+
+          // 1️⃣ Reverse geocoding → nom réel de la ville
+          const infoVille = await obtenirNomVilleDepuisCoords(latitude, longitude)
+
+          // 2️⃣ Recherche météo avec coordonnées + nom
+          await rechercher('', { lat: latitude, lon: longitude }, infoVille)
+        } catch (err) {
+          console.error('Erreur de géolocalisation:', err)
+          setErreur(err.message || 'Impossible de trouver votre position')
+        } finally {
+          setLocalisationEnCours(false)
           setChargement(false)
         }
       },
-      (erreur) => {
-        console.error('Erreur de géolocalisation:', erreur)
-        setErreur('Autorisation de localisation refusée')
+      (err) => {
+        console.error('Erreur de géolocalisation:', err)
+        let message = 'Autorisation de localisation refusée'
+        if (err.code === 1) message = 'Vous avez refusé la géolocalisation'
+        if (err.code === 2) message = 'Position indisponible'
+        if (err.code === 3) message = 'Délai de localisation dépassé'
+        setErreur(message)
+        setLocalisationEnCours(false)
         setChargement(false)
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
     )
   }
 
@@ -320,13 +375,14 @@ const Meteo = () => {
         }
       }
     }
-    
+
     document.addEventListener('mousedown', gererClicExterieur)
     return () => document.removeEventListener('mousedown', gererClicExterieur)
   }, [])
 
   useEffect(() => {
     rechercher('Abidjan')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -334,7 +390,7 @@ const Meteo = () => {
 
     const mettreAJourHeure = () => {
       const maintenant = new Date()
-      
+
       const dateFormatee = new Intl.DateTimeFormat('fr-FR', {
         timeZone: donneesMeteo.fuseauHoraire || 'UTC',
         weekday: 'long',
@@ -361,47 +417,53 @@ const Meteo = () => {
   // --- PRÉPARATION DES DONNÉES POUR L'AFFICHAGE ---
 
   const estFavori = donneesMeteo && favoris.some(
-    item => item.toLowerCase() === `${donneesMeteo.localisation}, ${donneesMeteo.pays}`.toLowerCase()
+    item =>
+      item.toLowerCase() ===
+      `${donneesMeteo.localisation}${donneesMeteo.pays ? `, ${donneesMeteo.pays}` : ''}`.toLowerCase()
   )
 
   // Prévisions horaires (8 prochaines heures)
-  const previsionsHoraire = donneesPrevisions?.hourly?.time ? 
-    donneesPrevisions.hourly.time.slice(0, 8).map((temps, index) => ({
-      horodatage: new Date(temps).getTime() / 1000,
-      temperature: Math.round(donneesPrevisions.hourly.temperature_2m?.[index] ?? 0),
-      codeMeteo: donneesPrevisions.hourly.weathercode?.[index] ?? 0,
-      description: obtenirInfosMeteo(donneesPrevisions.hourly.weathercode?.[index] ?? 0, 1).description,
-      icone: obtenirInfosMeteo(donneesPrevisions.hourly.weathercode?.[index] ?? 0, 1).icone,
-      probabilitePluie: (donneesPrevisions.hourly.precipitation_probability?.[index] ?? 0) / 100
-    })) : []
+  const previsionsHoraire = donneesPrevisions?.hourly?.time
+    ? donneesPrevisions.hourly.time.slice(0, 8).map((temps, index) => ({
+        horodatage: new Date(temps).getTime() / 1000,
+        temperature: Math.round(donneesPrevisions.hourly.temperature_2m?.[index] ?? 0),
+        codeMeteo: donneesPrevisions.hourly.weathercode?.[index] ?? 0,
+        description: obtenirInfosMeteo(donneesPrevisions.hourly.weathercode?.[index] ?? 0, 1).description,
+        icone: obtenirInfosMeteo(donneesPrevisions.hourly.weathercode?.[index] ?? 0, 1).icone,
+        probabilitePluie: (donneesPrevisions.hourly.precipitation_probability?.[index] ?? 0) / 100
+      }))
+    : []
 
   // Prévisions quotidiennes (5 prochains jours)
-  const previsionsQuotidiennes = donneesPrevisions?.daily?.time ? 
-    donneesPrevisions.daily.time.slice(0, 5).map((date, index) => ({
-      date: new Date(date).getTime() / 1000,
-      max: Math.round(donneesPrevisions.daily.temperature_2m_max?.[index] ?? 0),
-      min: Math.round(donneesPrevisions.daily.temperature_2m_min?.[index] ?? 0),
-      codeMeteo: donneesPrevisions.daily.weathercode?.[index] ?? 0,
-      description: obtenirInfosMeteo(donneesPrevisions.daily.weathercode?.[index] ?? 0, 1).description,
-      icone: obtenirInfosMeteo(donneesPrevisions.daily.weathercode?.[index] ?? 0, 1).icone
-    })) : []
+  const previsionsQuotidiennes = donneesPrevisions?.daily?.time
+    ? donneesPrevisions.daily.time.slice(0, 5).map((date, index) => ({
+        date: new Date(date).getTime() / 1000,
+        max: Math.round(donneesPrevisions.daily.temperature_2m_max?.[index] ?? 0),
+        min: Math.round(donneesPrevisions.daily.temperature_2m_min?.[index] ?? 0),
+        codeMeteo: donneesPrevisions.daily.weathercode?.[index] ?? 0,
+        description: obtenirInfosMeteo(donneesPrevisions.daily.weathercode?.[index] ?? 0, 1).description,
+        icone: obtenirInfosMeteo(donneesPrevisions.daily.weathercode?.[index] ?? 0, 1).icone
+      }))
+    : []
 
   // Déterminer le moment de la journée
-  const estJour = donneesMeteo ? 
-    (() => {
-      const maintenant = Math.floor(Date.now() / 1000)
-      const lever = donneesMeteo.leverSoleil || 0
-      const coucher = donneesMeteo.coucherSoleil || 0
-      return maintenant >= lever && maintenant < coucher
-    })() : true
+  const estJour = donneesMeteo
+    ? (() => {
+        const maintenant = Math.floor(Date.now() / 1000)
+        const lever = donneesMeteo.leverSoleil || 0
+        const coucher = donneesMeteo.coucherSoleil || 0
+        return maintenant >= lever && maintenant < coucher
+      })()
+    : true
 
-  const estCoucherSoleil = donneesMeteo ? 
-    (() => {
-      const maintenant = Math.floor(Date.now() / 1000)
-      const coucher = donneesMeteo.coucherSoleil || 0
-      const periodeCoucher = 30 * 60
-      return Math.abs(maintenant - coucher) <= periodeCoucher
-    })() : false
+  const estCoucherSoleil = donneesMeteo
+    ? (() => {
+        const maintenant = Math.floor(Date.now() / 1000)
+        const coucher = donneesMeteo.coucherSoleil || 0
+        const periodeCoucher = 30 * 60
+        return Math.abs(maintenant - coucher) <= periodeCoucher
+      })()
+    : false
 
   // --- RENDU ---
 
@@ -446,22 +508,31 @@ const Meteo = () => {
             </div>
 
             <div className="search-actions">
-              <button type="button" onClick={localiserUtilisateur} className="secondary-btn">
-                📍 Ma position
+              <button
+                type="button"
+                onClick={localiserUtilisateur}
+                className="secondary-btn"
+                disabled={localisationEnCours}
+              >
+                {localisationEnCours ? '⏳ Localisation...' : '📍 Ma position'}
               </button>
 
               {historiqueRecherches.length > 0 && (
                 <div className="quick-searches">
                   <span>Récentes</span>
                   {historiqueRecherches.map(ville => (
-                    <button type="button" key={ville} onClick={() => rechercherDepuisHistorique(ville)}>
+                    <button
+                      type="button"
+                      key={ville}
+                      onClick={() => rechercherDepuisHistorique(ville)}
+                    >
                       {ville}
                     </button>
                   ))}
-                  <button 
-                    type="button" 
-                    className="clear-history" 
-                    onClick={() => { 
+                  <button
+                    type="button"
+                    className="clear-history"
+                    onClick={() => {
                       setHistoriqueRecherches([])
                       localStorage.removeItem('meteo-history')
                     }}
@@ -475,7 +546,11 @@ const Meteo = () => {
                 <div className="quick-searches favorites-list">
                   <span>Favoris</span>
                   {favoris.map(ville => (
-                    <button type="button" key={ville} onClick={() => rechercherDepuisHistorique(ville)}>
+                    <button
+                      type="button"
+                      key={ville}
+                      onClick={() => rechercherDepuisHistorique(ville)}
+                    >
                       {ville} ★
                     </button>
                   ))}
@@ -505,13 +580,15 @@ const Meteo = () => {
           {chargement ? (
             <div className="loading">
               <div className="loading-spinner" />
-              <div className="loading-text">Chargement...</div>
+              <div className="loading-text">
+                {localisationEnCours ? 'Localisation en cours...' : 'Chargement...'}
+              </div>
             </div>
           ) : donneesMeteo ? (
             <>
               <div className="weather-main">
                 <div className="weather-icon-container">
-                  {(!estJour && donneesMeteo.codeIcone?.startsWith('01')) ? (
+                  {!estJour && donneesMeteo.codeIcone?.startsWith('01') ? (
                     <div className="night-icon" aria-label="Nuit">🌙</div>
                   ) : (
                     <img src={donneesMeteo.icone} alt="Météo" className='weather-icon' />
@@ -524,7 +601,8 @@ const Meteo = () => {
                 </p>
                 <p className='description'>{donneesMeteo.description}</p>
                 <p className='location'>
-                  📍 {donneesMeteo.localisation}, {donneesMeteo.pays}
+                  📍 {donneesMeteo.localisation}
+                  {donneesMeteo.pays && `, ${donneesMeteo.pays}`}
                   <span className="time-indicator">
                     {estCoucherSoleil ? ' 🌅' : estJour ? ' ☀️' : ' 🌙'}
                   </span>
@@ -535,9 +613,9 @@ const Meteo = () => {
                   <time>{heureActuelle || 'Chargement...'}</time>
                 </div>
 
-                <button 
-                  type="button" 
-                  className={`favorite-btn ${estFavori ? 'active' : ''}`} 
+                <button
+                  type="button"
+                  className={`favorite-btn ${estFavori ? 'active' : ''}`}
                   onClick={basculerFavori}
                 >
                   {estFavori ? '★ Ville favorite' : '☆ Ajouter aux favoris'}
@@ -574,7 +652,7 @@ const Meteo = () => {
                 <div className="detail-card detail-card-text">
                   <span>Lever / coucher</span>
                   <p>
-                    {formaterHeureLocale(donneesMeteo.leverSoleil, donneesMeteo.fuseauHoraire, { hour: '2-digit', minute: '2-digit' })} / 
+                    {formaterHeureLocale(donneesMeteo.leverSoleil, donneesMeteo.fuseauHoraire, { hour: '2-digit', minute: '2-digit' })} /{' '}
                     {formaterHeureLocale(donneesMeteo.coucherSoleil, donneesMeteo.fuseauHoraire, { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
@@ -586,10 +664,14 @@ const Meteo = () => {
                   <div className="forecast-scroll">
                     {previsionsHoraire.map((item, index) => (
                       <div className="forecast-item" key={index}>
-                        <span>{formaterHeureLocale(item.horodatage, donneesMeteo.fuseauHoraire, { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span>
+                          {formaterHeureLocale(item.horodatage, donneesMeteo.fuseauHoraire, { hour: '2-digit', minute: '2-digit' })}
+                        </span>
                         <img src={item.icone} alt={item.description} />
                         <strong>{item.temperature}°</strong>
-                        {item.probabilitePluie > 0 && <small>☂ {Math.round(item.probabilitePluie * 100)}%</small>}
+                        {item.probabilitePluie > 0 && (
+                          <small>☂ {Math.round(item.probabilitePluie * 100)}%</small>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -603,7 +685,11 @@ const Meteo = () => {
                     {previsionsQuotidiennes.map((jour, index) => (
                       <div className="daily-item" key={index}>
                         <span>
-                          {formaterHeureLocale(jour.date, donneesMeteo.fuseauHoraire, { weekday: 'short', day: 'numeric', month: 'short' })}
+                          {formaterHeureLocale(jour.date, donneesMeteo.fuseauHoraire, {
+                            weekday: 'short',
+                            day: 'numeric',
+                            month: 'short'
+                          })}
                         </span>
                         <img src={jour.icone} alt={jour.description} />
                         <strong>{jour.max}° / {jour.min}°</strong>

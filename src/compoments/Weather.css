@@ -12,6 +12,9 @@ html {
   height: 100%;
 }
 
+/* ============================================
+   BODY — FOND PRINCIPAL
+   ============================================ */
 body {
   font-family: 'Segoe UI', 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
   min-height: 100vh;
@@ -24,11 +27,11 @@ body {
   background-attachment: fixed;
   overflow-x: hidden;
   overflow-y: auto;
-  /* ❌ SUPPRIMÉ : display:flex — c'est ça qui cassait tout */
+  perspective: 1500px;
 }
 
 /* ============================================
-   FONDS DYNAMIQUES
+   FONDS DYNAMIQUES — JOUR / COUCHER
    ============================================ */
 .background-day,
 .background-sunset {
@@ -49,11 +52,12 @@ body {
   opacity: 1;
 }
 
+/* Voile sombre global */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.22);
+  background: rgba(0, 0, 0, 0.1);
   z-index: 1;
   transition: background 2.5s ease-in-out;
   pointer-events: none;
@@ -61,7 +65,7 @@ body::before {
 
 body:has(.background-day.visible)::before,
 body:has(.background-sunset.visible)::before {
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.08);
 }
 
 body:has(.background-day.visible) .stars,
@@ -71,7 +75,7 @@ body:has(.background-sunset.visible) .stars {
 }
 
 /* ============================================
-   ÉTOILES
+   ETOILES
    ============================================ */
 .stars {
   position: fixed;
@@ -109,47 +113,100 @@ body:has(.background-sunset.visible) .stars {
 }
 
 /* ============================================
-   CONTENEUR PRINCIPAL — CENTRAGE PAR MARGIN AUTO
+   CONTENEUR PRINCIPAL
    ============================================ */
 .weather-container {
   width: 100%;
   max-width: 480px;
-  margin: 0 auto;          /* ✅ centrage horizontal fiable */
+  margin: 0 auto;
   padding: 0;
   position: relative;
   z-index: 3;
+  perspective: 1200px;
 }
 
 /* ============================================
-   CARTE MÉTÉO
+   CARTE METEO — EFFET 3D COQUE (tres transparente)
    ============================================ */
 .weather {
   width: 100%;
-  min-width: 0;             /* ✅ empêche le débordement flex */
-  background: rgba(0, 0, 0, 0.46);
-  -webkit-backdrop-filter: blur(25px);
-  backdrop-filter: blur(25px);
-  transition:
-    transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-    background 0.4s ease,
-    box-shadow 0.4s ease;
-  border-radius: clamp(14px, 4vw, 30px);
-  padding: clamp(16px, 4vw, 40px) clamp(12px, 4vw, 35px);
+  min-width: 0;
+  position: relative;
+
+  /* Fond tres leger : simple voile pour lisibilite */
+  background: rgba(15, 20, 35, 0.18);
+  -webkit-backdrop-filter: blur(10px) saturate(120%);
+  backdrop-filter: blur(10px) saturate(120%);
+
+  /* Coins tres arrondis type smartphone */
+  border-radius: clamp(28px, 7vw, 48px);
+
+  padding: clamp(20px, 4.5vw, 44px) clamp(16px, 4vw, 38px);
+
+  /* Pas de bordure */
+  border: none;
+
+  /* Ombre 3D multicouche (garde l'effet coque) */
   box-shadow:
-    0 25px 80px rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(255, 255, 255, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.2),
+    0 4px 12px rgba(0, 0, 0, 0.25),
+    0 15px 35px rgba(0, 0, 0, 0.35),
+    0 35px 70px rgba(0, 0, 0, 0.4),
+    0 50px 100px rgba(0, 0, 0, 0.25);
+
+  transform-style: preserve-3d;
+  transform: perspective(1200px) rotateX(0deg) rotateY(0deg) translateZ(0);
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
 }
 
-.weather:hover {
-  transform: translateY(-5px);
-  box-shadow:
-    0 35px 100px rgba(0, 0, 0, 0.7),
-    0 0 0 1px rgba(255, 255, 255, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+/* Reflet en haut (effet verre) */
+.weather::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 45%;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.02) 40%,
+    transparent 100%
+  );
+  border-radius: clamp(28px, 7vw, 48px) clamp(28px, 7vw, 48px) 0 0;
+  pointer-events: none;
+  z-index: 1;
 }
+
+/* Reflet lateral gauche */
+.weather::after {
+  content: '';
+  position: absolute;
+  top: 5%;
+  bottom: 5%;
+  left: 0;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(255, 255, 255, 0.18) 30%,
+    rgba(255, 255, 255, 0.18) 70%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Enfants sureleves */
+.weather > * {
+  position: relative;
+  z-index: 2;
+  transform: translateZ(20px);
+}
+
 
 /* ============================================
    LOGO
@@ -165,7 +222,7 @@ body:has(.background-sunset.visible) .stars {
   width: min(70%, 220px);
   max-height: clamp(40px, 8vh, 72px);
   object-fit: contain;
-  filter: brightness(1.35) drop-shadow(0 5px 16px rgba(0, 0, 0, 0.35));
+  filter: brightness(1.35) drop-shadow(0 5px 16px rgba(0, 0, 0, 0.5));
 }
 
 /* ============================================
@@ -180,23 +237,32 @@ body:has(.background-sunset.visible) .stars {
 .search-bar {
   display: flex;
   gap: clamp(6px, 1.5vw, 12px);
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.4);
+  -webkit-backdrop-filter: blur(15px);
+  backdrop-filter: blur(15px);
   padding: 4px;
   border-radius: clamp(14px, 3vw, 20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   transition: all 0.3s ease;
   width: 100%;
+  box-shadow:
+    0 4px 15px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .search-bar:focus-within {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
-  box-shadow: 0 0 30px rgba(102, 126, 234, 0.15);
+  background: rgba(0, 0, 0, 0.55);
+  border-color: rgba(102, 126, 234, 0.7);
+  box-shadow:
+    0 0 30px rgba(102, 126, 234, 0.35),
+    0 8px 20px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
 }
 
 .search-bar input {
   flex: 1 1 0;
-  min-width: 0;             /* ✅ crucial pour que l'input rétrécisse */
+  min-width: 0;
   padding: clamp(10px, 2.5vw, 16px) clamp(10px, 3vw, 24px);
   border: none;
   border-radius: clamp(12px, 2vw, 18px);
@@ -204,14 +270,15 @@ body:has(.background-sunset.visible) .stars {
   font-family: 'Segoe UI', sans-serif;
   background: transparent;
   outline: none;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.95);
   width: 100%;
 }
 
 .search-bar input::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.5);
 }
 
+/* Bouton rechercher (bouton -> hover conserve) */
 .search-btn {
   width: clamp(40px, 8vw, 56px);
   height: clamp(40px, 8vw, 56px);
@@ -224,15 +291,25 @@ body:has(.background-sunset.visible) .stars {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+  box-shadow:
+    0 4px 20px rgba(102, 126, 234, 0.5),
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .search-btn:hover {
-  transform: scale(1.05);
+  transform: scale(1.08) translateY(-2px);
+  box-shadow:
+    0 10px 35px rgba(102, 126, 234, 0.7),
+    0 4px 8px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .search-btn:active {
-  transform: scale(0.95);
+  transform: scale(0.95) translateY(0);
+  box-shadow:
+    0 2px 10px rgba(102, 126, 234, 0.4),
+    inset 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .search-btn img {
@@ -251,21 +328,27 @@ body:has(.background-sunset.visible) .stars {
   width: 100%;
 }
 
+/* Boutons secondaires (boutons -> hover conserve) */
 .secondary-btn,
 .quick-searches button,
 .favorite-btn {
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: clamp(8px, 1.5vw, 12px);
   padding: clamp(5px, 1.2vw, 9px) clamp(8px, 1.5vw, 12px);
-  color: rgba(255, 255, 255, 0.82);
-  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.95);
+  background: rgba(0, 0, 0, 0.4);
+  -webkit-backdrop-filter: blur(15px);
+  backdrop-filter: blur(15px);
   cursor: pointer;
-  transition: background 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
+  transition: all 0.25s ease;
   font-size: clamp(10px, 1.4vw, 13px);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   font-family: inherit;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .secondary-btn {
@@ -275,11 +358,30 @@ body:has(.background-sunset.visible) .stars {
 .secondary-btn:hover,
 .quick-searches button:hover,
 .favorite-btn:hover {
-  background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(255, 255, 255, 0.25);
-  transform: translateY(-1px);
+  background: rgba(0, 0, 0, 0.55);
+  border-color: rgba(102, 126, 234, 0.7);
+  box-shadow:
+    0 0 20px rgba(102, 126, 234, 0.4),
+    0 4px 12px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
 }
 
+.secondary-btn:active,
+.quick-searches button:active,
+.favorite-btn:active {
+  transform: translateY(0);
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.4),
+    inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.secondary-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* Bloc recherches rapides */
 .quick-searches {
   display: flex;
   align-items: center;
@@ -290,10 +392,11 @@ body:has(.background-sunset.visible) .stars {
 
 .quick-searches span {
   width: 100%;
-  color: rgba(255, 255, 255, 0.48);
+  color: rgba(255, 255, 255, 0.65);
   font-size: clamp(9px, 1.2vw, 11px);
   letter-spacing: 1px;
   text-transform: uppercase;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
 }
 
 .quick-searches button {
@@ -308,6 +411,7 @@ body:has(.background-sunset.visible) .stars {
   color: #ffaaa8;
 }
 
+/* Bouton favori */
 .favorite-btn {
   margin-top: clamp(10px, 2vw, 18px);
   font-size: clamp(10px, 1.4vw, 13px);
@@ -317,35 +421,49 @@ body:has(.background-sunset.visible) .stars {
 
 .favorite-btn.active {
   color: #ffe28a;
-  border-color: rgba(255, 226, 138, 0.35);
-  background: rgba(255, 226, 138, 0.1);
+  border-color: rgba(255, 226, 138, 0.6);
+  background: rgba(0, 0, 0, 0.5);
+  box-shadow:
+    0 0 20px rgba(255, 226, 138, 0.35),
+    0 4px 12px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 /* ============================================
-   SUGGESTIONS
+   SUGGESTIONS (elements cliquables -> hover conserve)
    ============================================ */
 .suggestions-list {
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
   right: 0;
-  background: rgba(20, 20, 30, 0.95);
+  background: rgba(15, 15, 25, 0.96);
   -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   border-radius: clamp(10px, 2vw, 16px);
   overflow: hidden;
   z-index: 1000;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-  animation: slideDown 0.3s ease;
+  border: 1px solid rgba(102, 126, 234, 0.4);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.7),
+    0 0 25px rgba(102, 126, 234, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  animation: slideDown3D 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   max-height: 50vh;
   overflow-y: auto;
   width: 100%;
+  transform-origin: top center;
 }
 
-@keyframes slideDown {
-  from { opacity: 0; transform: translateY(-10px); }
-  to   { opacity: 1; transform: translateY(0); }
+@keyframes slideDown3D {
+  from {
+    opacity: 0;
+    transform: rotateX(-15deg) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: rotateX(0deg) translateY(0);
+  }
 }
 
 .suggestion-item {
@@ -361,7 +479,11 @@ body:has(.background-sunset.visible) .stars {
 }
 
 .suggestion-item:last-child { border-bottom: none; }
-.suggestion-item:hover { background: rgba(255, 255, 255, 0.1); }
+
+.suggestion-item:hover {
+  background: rgba(102, 126, 234, 0.18);
+  transform: translateX(4px);
+}
 
 .city-name {
   font-weight: 600;
@@ -395,17 +517,21 @@ body:has(.background-sunset.visible) .stars {
    ERREUR / LOADING / NO DATA
    ============================================ */
 .error-message {
-  background: rgba(255, 59, 48, 0.15);
-  border: 1px solid rgba(255, 59, 48, 0.2);
-  color: #ff6b6b;
+  background: rgba(255, 59, 48, 0.25);
+  -webkit-backdrop-filter: blur(15px);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 59, 48, 0.4);
+  color: #ff8a8a;
   padding: clamp(8px, 2vw, 14px) clamp(12px, 3vw, 20px);
   border-radius: clamp(10px, 2vw, 14px);
   margin-bottom: clamp(12px, 3vw, 25px);
   font-weight: 500;
   text-align: center;
-  animation: slideDown 0.3s ease;
+  animation: slideDown3D 0.3s ease;
   font-size: clamp(12px, 1.6vw, 15px);
   word-wrap: break-word;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 6px 20px rgba(255, 59, 48, 0.2);
 }
 
 .loading {
@@ -420,10 +546,11 @@ body:has(.background-sunset.visible) .stars {
 .loading-spinner {
   width: clamp(36px, 6vw, 50px);
   height: clamp(36px, 6vw, 50px);
-  border: 3px solid rgba(255, 255, 255, 0.1);
+  border: 3px solid rgba(255, 255, 255, 0.15);
   border-top: 3px solid #667eea;
   border-radius: 50%;
   animation: spin 1s linear infinite;
+  box-shadow: 0 0 20px rgba(102, 126, 234, 0.4);
 }
 
 @keyframes spin {
@@ -431,19 +558,21 @@ body:has(.background-sunset.visible) .stars {
 }
 
 .loading-text {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.85);
   font-size: clamp(13px, 1.8vw, 16px);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
 
 .no-data {
   text-align: center;
   padding: clamp(24px, 6vw, 50px) 0;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.6);
   font-size: clamp(13px, 1.8vw, 18px);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
 
 /* ============================================
-   MÉTÉO PRINCIPALE
+   METEO PRINCIPALE
    ============================================ */
 .weather-main {
   text-align: center;
@@ -454,6 +583,7 @@ body:has(.background-sunset.visible) .stars {
 .weather-icon-container {
   position: relative;
   display: inline-block;
+  transform-style: preserve-3d;
 }
 
 .weather-icon,
@@ -461,7 +591,9 @@ body:has(.background-sunset.visible) .stars {
   width: clamp(80px, 18vw, 130px);
   height: clamp(80px, 18vw, 130px);
   margin: 0 auto 5px;
-  filter: drop-shadow(0 10px 40px rgba(102, 126, 234, 0.3));
+  filter:
+    drop-shadow(0 10px 40px rgba(0, 0, 0, 0.5))
+    drop-shadow(0 0 30px rgba(102, 126, 234, 0.3));
   animation: floatIcon 4s ease-in-out infinite;
 }
 
@@ -482,17 +614,24 @@ body:has(.background-sunset.visible) .stars {
   bottom: -5px;
   right: clamp(-8px, -2vw, -15px);
   font-size: clamp(22px, 5vw, 40px);
-  filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.3));
+  filter:
+    drop-shadow(0 4px 20px rgba(0, 0, 0, 0.6))
+    drop-shadow(0 0 15px rgba(255, 226, 138, 0.4));
+  animation: floatIcon 4s ease-in-out infinite;
+  animation-delay: 0.5s;
 }
 
 .temperature {
   font-size: clamp(40px, 10vw, 72px);
   font-weight: 300;
-  color: rgba(255, 255, 255, 0.95);
+  color: rgba(255, 255, 255, 1);
   line-height: 1;
   margin: clamp(4px, 1vw, 8px) 0;
   letter-spacing: -2px;
-  text-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+  text-shadow:
+    0 4px 30px rgba(0, 0, 0, 0.8),
+    0 2px 10px rgba(0, 0, 0, 0.6),
+    0 0 40px rgba(102, 126, 234, 0.3);
 }
 
 .temperature span {
@@ -502,31 +641,38 @@ body:has(.background-sunset.visible) .stars {
 
 .description {
   font-size: clamp(16px, 3vw, 22px);
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.95);
   margin: clamp(6px, 1.5vw, 10px) 0 clamp(10px, 2vw, 15px);
   text-transform: capitalize;
-  font-weight: 300;
-  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+  font-weight: 400;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.8), 0 1px 6px rgba(0, 0, 0, 0.6);
   word-wrap: break-word;
 }
 
+/* Bloc localisation (pas un bouton -> plus de hover) */
 .location {
   font-size: clamp(13px, 2.5vw, 20px);
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(255, 255, 255, 1);
   font-weight: 400;
   display: inline-flex;
   align-items: center;
   gap: clamp(3px, 1vw, 8px);
   padding: clamp(4px, 1.2vw, 8px) clamp(10px, 2.5vw, 20px);
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.45);
+  -webkit-backdrop-filter: blur(15px);
+  backdrop-filter: blur(15px);
   border-radius: 50px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(102, 126, 234, 0.5);
   max-width: 100%;
   flex-wrap: wrap;
   justify-content: center;
   overflow-wrap: anywhere;
   word-break: break-word;
   text-align: center;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+  box-shadow:
+    0 4px 15px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 .time-indicator { font-size: clamp(13px, 2.5vw, 18px); }
@@ -536,11 +682,12 @@ body:has(.background-sunset.visible) .stars {
   flex-direction: column;
   gap: 4px;
   margin-top: clamp(10px, 2vw, 16px);
-  color: rgba(255, 255, 255, 0.92);
+  color: rgba(255, 255, 255, 1);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
 }
 
 .time-label {
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.7);
   font-size: clamp(10px, 1.5vw, 13px);
   text-transform: uppercase;
   letter-spacing: 1.5px;
@@ -553,7 +700,7 @@ body:has(.background-sunset.visible) .stars {
 }
 
 /* ============================================
-   DÉTAILS
+   DETAILS — CARTES (pas de hover, pas cliquables)
    ============================================ */
 .weather-details {
   display: grid;
@@ -564,21 +711,21 @@ body:has(.background-sunset.visible) .stars {
 }
 
 .detail-card {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.4);
+  -webkit-backdrop-filter: blur(15px);
+  backdrop-filter: blur(15px);
   border-radius: clamp(10px, 2vw, 16px);
   padding: clamp(8px, 1.8vw, 16px);
   display: flex;
   align-items: center;
   gap: clamp(5px, 1.2vw, 12px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.12);
   min-width: 0;
   overflow: hidden;
-}
-
-.detail-card:hover {
-  background: rgba(255, 255, 255, 0.1);
-  transform: translateY(-2px);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transform: translateZ(0);
 }
 
 .detail-card div {
@@ -589,28 +736,33 @@ body:has(.background-sunset.visible) .stars {
 
 .detail-card p {
   font-size: clamp(13px, 2.5vw, 20px);
-  font-weight: 300;
-  color: rgba(255, 255, 255, 0.95);
+  font-weight: 400;
+  color: rgba(255, 255, 255, 1);
   line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
 }
 
 .detail-card span {
   font-size: clamp(9px, 1.2vw, 12px);
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.6);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   display: block;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
 }
 
 .detail-card img {
   width: clamp(24px, 4.5vw, 38px);
   height: clamp(24px, 4.5vw, 38px);
-  opacity: 0.8;
-  filter: brightness(0) invert(1);
+  opacity: 0.95;
+  filter:
+    brightness(0) invert(1)
+    drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6))
+    drop-shadow(0 0 12px rgba(102, 126, 234, 0.4));
   flex-shrink: 0;
 }
 
@@ -629,7 +781,7 @@ body:has(.background-sunset.visible) .stars {
 }
 
 /* ============================================
-   PRÉVISIONS
+   PREVISIONS — CARTES (pas de hover, pas cliquables)
    ============================================ */
 .forecast-section {
   margin-top: clamp(14px, 3vw, 28px);
@@ -638,9 +790,10 @@ body:has(.background-sunset.visible) .stars {
 
 .forecast-section h2 {
   margin-bottom: clamp(8px, 2vw, 13px);
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(255, 255, 255, 1);
   font-size: clamp(13px, 2vw, 16px);
   font-weight: 500;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
 }
 
 .forecast-scroll,
@@ -648,7 +801,7 @@ body:has(.background-sunset.visible) .stars {
   display: flex;
   gap: clamp(6px, 1.5vw, 10px);
   overflow-x: auto;
-  padding: 2px 2px clamp(4px, 1vw, 8px);
+  padding: 4px 2px clamp(6px, 1vw, 10px);
   scroll-snap-type: x mandatory;
   width: 100%;
   -webkit-overflow-scrolling: touch;
@@ -661,8 +814,9 @@ body:has(.background-sunset.visible) .stars {
 
 .forecast-scroll::-webkit-scrollbar-thumb,
 .daily-forecast::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(102, 126, 234, 0.6);
   border-radius: 10px;
+  box-shadow: 0 0 8px rgba(102, 126, 234, 0.4);
 }
 
 .forecast-item,
@@ -675,18 +829,27 @@ body:has(.background-sunset.visible) .stars {
   align-items: center;
   justify-content: space-between;
   gap: clamp(3px, 0.8vw, 6px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: clamp(10px, 2vw, 15px);
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.78);
+  background: rgba(0, 0, 0, 0.4);
+  -webkit-backdrop-filter: blur(15px);
+  backdrop-filter: blur(15px);
+  color: rgba(255, 255, 255, 0.95);
   text-align: center;
   scroll-snap-align: start;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .forecast-item img {
   width: clamp(28px, 6vw, 42px);
   height: clamp(28px, 6vw, 42px);
   object-fit: contain;
+  filter:
+    drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5))
+    drop-shadow(0 0 10px rgba(102, 126, 234, 0.2));
 }
 
 .forecast-item span,
@@ -706,7 +869,7 @@ body:has(.background-sunset.visible) .stars {
 
 .forecast-item small,
 .daily-item small {
-  color: rgba(255, 255, 255, 0.48);
+  color: rgba(255, 255, 255, 0.65);
   font-size: clamp(8px, 1vw, 10px);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -725,23 +888,20 @@ body:has(.background-sunset.visible) .stars {
 }
 
 /* ============================================
-   RESPONSIVE — UNIQUEMENT DES AJUSTEMENTS
+   RESPONSIVE
    ============================================ */
 
-/* Très petits écrans (≤ 360px) */
+/* --- Tres petits ecrans (max 360px) --- */
 @media (max-width: 360px) {
-  body {
-    padding: 6px;
-  }
+  body { padding: 6px; }
 
   .weather {
-    padding: 12px 10px;
-    border-radius: 14px;
+    padding: 12px 8px;
+    border-width: 1px;
+    transform: rotateX(1deg) rotateY(-0.5deg);
   }
 
-  .weather-container {
-    max-width: 100%;
-  }
+  .weather-container { max-width: 100%; }
 
   .brand-logo img {
     width: 55%;
@@ -806,27 +966,16 @@ body:has(.background-sunset.visible) .stars {
   }
 }
 
-/* Tablettes (501px → 768px) */
+/* --- Tablettes (501px a 768px) --- */
 @media (min-width: 501px) and (max-width: 768px) {
-  .weather {
-    padding: 24px 20px;
-  }
-
-  .weather-container {
-    max-width: 440px;
-  }
+  .weather { padding: 24px 20px; }
+  .weather-container { max-width: 440px; }
 }
 
-/* Grands écrans */
+/* --- Grands ecrans (min 1200px) --- */
 @media (min-width: 1200px) {
-  .weather-container {
-    max-width: 520px;
-  }
-
-  .weather {
-    padding: 45px 40px;
-  }
-
+  .weather-container { max-width: 520px; }
+  .weather { padding: 45px 40px; }
   .temperature { font-size: 80px; }
 
   .weather-icon,
@@ -838,7 +987,7 @@ body:has(.background-sunset.visible) .stars {
   .night-icon { font-size: 110px; }
 }
 
-/* Accessibilité */
+/* --- Accessibilite : reduire les animations --- */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
