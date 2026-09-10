@@ -134,7 +134,7 @@ body:has(.background-sunset.visible) .stars {
   position: relative;
 
   /* Fond tres leger : simple voile pour lisibilite */
-  background: rgba(15, 20, 35, 0);
+  background: rgba(17, 20, 31, 0);
   -webkit-backdrop-filter: blur(10px) saturate(120%);
   backdrop-filter: blur(10px) saturate(120%);
 
@@ -1096,20 +1096,194 @@ body:has(.background-sunset.visible) .stars {
 /* ============================================
    SUGGESTIONS — CLIQUABLES
    ============================================ */
+.suggestions-list {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 99999;
+  pointer-events: auto;
+  background: rgba(15, 15, 25, 0.96);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border-radius: 12px;
+  border: 1px solid rgba(102, 126, 234, 0.4);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.7),
+    0 0 25px rgba(102, 126, 234, 0.25);
+  max-height: 50vh;
+  overflow-y: auto;
+  width: 100%;
+  animation: slideDown3D 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: top center;
+}
+
 .suggestion-item {
+  position: relative;
+  z-index: 100000;
+  pointer-events: auto;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  width: 100%;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-item:hover {
+  background: rgba(102, 126, 234, 0.25);
+}
+
+.suggestion-item:active {
+  background: rgba(102, 126, 234, 0.45);
+  transform: scale(0.98);
+}
+
+.suggestion-item:focus {
+  outline: 2px solid rgba(102, 126, 234, 0.9);
+  outline-offset: -2px;
+  background: rgba(102, 126, 234, 0.2);
+}
+
+/* Les enfants de la suggestion ne captent pas le clic */
+/* ✅ Au lieu de : .suggestion-item > * */
+.suggestion-item .city-name,
+.suggestion-item .city-state,
+.suggestion-item .city-country {
+  pointer-events: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Wrapper au-dessus */
+.search-wrapper {
+  position: relative;
+  z-index: 100;
+}
+
+/* Le voile et les etoiles ne bloquent pas les clics */
+body::before,
+.stars,
+.background-day,
+.background-sunset {
+  pointer-events: none;
+}
+
+/* ============================================
+   HEURE LOCALE — BLOC EN HAUT (SEPARE)
+   ============================================ */
+.time-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  margin: 0 0 clamp(16px, 3vw, 24px) 0;
+  padding: clamp(10px, 2vw, 14px) clamp(14px, 3vw, 20px);
+  background: rgba(0, 0, 0, 0.35);
+  -webkit-backdrop-filter: blur(15px);
+  backdrop-filter: blur(15px);
+  border-radius: clamp(12px, 2vw, 16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 4px 15px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.time-label {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: clamp(9px, 1.3vw, 11px);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 500;
+}
+
+.time-display time {
+  font-size: clamp(13px, 1.8vw, 16px);
+  text-transform: capitalize;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  font-weight: 400;
+}
+
+/* ============================================
+   SUGGESTIONS — CLIQUABLES
+   ============================================ */
+.search-wrapper {
+  position: relative;
+  z-index: 100;
+}
+
+.suggestions-list {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background: rgba(15, 15, 25, 0.96);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border-radius: 12px;
+  border: 1px solid rgba(102, 126, 234, 0.4);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.7),
+    0 0 25px rgba(102, 126, 234, 0.25);
+  max-height: 50vh;
+  overflow-y: auto;
+  width: 100%;
+  animation: slideDown3D 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: top center;
+}
+
+.suggestion-item {
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  width: 100%;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  transition: background 0.2s ease;
+  -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
 
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-item:hover {
+  background: rgba(102, 126, 234, 0.25);
+}
+
 .suggestion-item:active {
-  background: rgba(102, 126, 234, 0.35);
-  transform: scale(0.98);
-  transition: transform 0.1s ease;
+  background: rgba(102, 126, 234, 0.45);
 }
 
 .suggestion-item:focus {
-  outline: 2px solid rgba(102, 126, 234, 0.7);
+  outline: 2px solid rgba(102, 126, 234, 0.9);
   outline-offset: -2px;
+  background: rgba(102, 126, 234, 0.2);
 }
 
+/* Le voile et les etoiles ne bloquent pas les clics */
+body::before,
+.stars,
+.background-day,
+.background-sunset {
+  pointer-events: none;
+}

@@ -30,7 +30,7 @@ const Meteo = () => {
   const [localisationEnCours, setLocalisationEnCours] = useState(false)
   const refChampSaisie = useRef(null)
   const refSuggestions = useRef(null)
-  const refDebounceSuggestions = useRef(null)
+  const refDebounce = useRef(null)
 
   // ============================================
   // FONCTIONS UTILITAIRES
@@ -90,10 +90,6 @@ const Meteo = () => {
     return { ...base, codeIcone }
   }
 
-  // ============================================
-  // GEOCODAGE INVERSE
-  // ============================================
-
   const obtenirNomVilleDepuisCoords = async (lat, lon) => {
     try {
       const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=fr`
@@ -144,7 +140,12 @@ const Meteo = () => {
   // ============================================
 
   const rechercher = async (ville, coordonnees = null, infoVille = null) => {
-    if (!ville?.trim() && !coordonnees) {
+    const aUnNom = ville && ville.trim()
+    const aDesCoords = coordonnees
+      && typeof coordonnees.lat === 'number'
+      && typeof coordonnees.lon === 'number'
+
+    if (!aUnNom && !aDesCoords) {
       setErreur('Veuillez entrer une ville')
       setChargement(false)
       return
@@ -157,10 +158,9 @@ const Meteo = () => {
     try {
       let lat, lon, nomVille = '', nomPays = ''
 
-      if (coordonnees) {
+      if (aDesCoords) {
         lat = coordonnees.lat
         lon = coordonnees.lon
-
         if (infoVille) {
           nomVille = infoVille.nom || ''
           nomPays = infoVille.pays || ''
@@ -243,7 +243,7 @@ const Meteo = () => {
   }
 
   // ============================================
-  // SUGGESTIONS (avec debounce)
+  // SUGGESTIONS
   // ============================================
 
   const rechercherSuggestions = async (requete) => {
@@ -280,14 +280,11 @@ const Meteo = () => {
     }
   }
 
-  // Debounce : attend 300ms apres la derniere frappe
   const rechercherSuggestionsDebounce = (requete) => {
-    if (refDebounceSuggestions.current) {
-      clearTimeout(refDebounceSuggestions.current)
-    }
-    refDebounceSuggestions.current = setTimeout(() => {
+    if (refDebounce.current) clearTimeout(refDebounce.current)
+    refDebounce.current = setTimeout(() => {
       rechercherSuggestions(requete)
-    }, 300)
+    }, 250)
   }
 
   // ============================================
@@ -300,15 +297,21 @@ const Meteo = () => {
     rechercherSuggestionsDebounce(valeur)
   }
 
-  const gererSelectionSuggestion = (ville) => {
+  const selectionnerSuggestion = (ville) => {
     if (!ville) return
+    if (typeof ville.lat !== 'number' || typeof ville.lon !== 'number') {
+      console.warn('Suggestion sans coordonnées:', ville)
+      return
+    }
+
     setAfficherSuggestions(false)
     setSuggestions([])
     setValeurRecherche(ville.affichage || ville.nom || '')
+
     rechercher(
       ville.nom || '',
       { lat: ville.lat, lon: ville.lon },
-      { nom: ville.nom, pays: ville.pays }
+      { nom: ville.nom || '', pays: ville.pays || '' }
     )
   }
 
@@ -323,8 +326,9 @@ const Meteo = () => {
 
   const gererToucheEntree = (e) => {
     if (e.key === 'Enter') {
+      e.preventDefault()
       if (suggestions.length > 0) {
-        gererSelectionSuggestion(suggestions[0])
+        selectionnerSuggestion(suggestions[0])
       } else {
         gererRecherche()
       }
@@ -379,11 +383,7 @@ const Meteo = () => {
         setLocalisationEnCours(false)
         setChargement(false)
       },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
-      }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     )
   }
 
@@ -391,26 +391,21 @@ const Meteo = () => {
   // EFFETS
   // ============================================
 
-  // Fermeture au clic exterieur (SANS casser le clic sur les suggestions)
   useEffect(() => {
     const gererClicExterieur = (evenement) => {
-      // Si le clic est hors du wrapper des suggestions
       if (refSuggestions.current && !refSuggestions.current.contains(evenement.target)) {
         setAfficherSuggestions(false)
       }
     }
-
     document.addEventListener('mousedown', gererClicExterieur)
     return () => document.removeEventListener('mousedown', gererClicExterieur)
   }, [])
 
-  // Chargement initial
   useEffect(() => {
     rechercher('Abidjan')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Horloge locale
   useEffect(() => {
     if (!donneesMeteo) return
 
@@ -590,9 +585,6 @@ const Meteo = () => {
               )}
             </div>
 
-            {/* ============================================
-                LISTE DES SUGGESTIONS (CLIQUABLES)
-                ============================================ */}
             {afficherSuggestions && suggestions.length > 0 && (
               <div className="suggestions-list">
                 {suggestions.map((ville, index) => (
@@ -604,20 +596,17 @@ const Meteo = () => {
                     onMouseDown={(e) => {
                       e.preventDefault()
                       e.stopPropagation()
-                      gererSelectionSuggestion(ville)
-                    }}
-                    onTouchStart={(e) => {
-                      e.stopPropagation()
+                      selectionnerSuggestion(ville)
                     }}
                     onTouchEnd={(e) => {
                       e.preventDefault()
                       e.stopPropagation()
-                      gererSelectionSuggestion(ville)
+                      selectionnerSuggestion(ville)
                     }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault()
-                        gererSelectionSuggestion(ville)
+                        selectionnerSuggestion(ville)
                       }
                     }}
                   >
@@ -641,6 +630,17 @@ const Meteo = () => {
             </div>
           ) : donneesMeteo ? (
             <>
+              {/* ============================================
+                  HEURE LOCALE — BLOC SEPARE EN HAUT
+                  ============================================ */}
+              <div className='time-display'>
+                <span className='time-label'>Heure locale</span>
+                <time>{heureActuelle || 'Chargement...'}</time>
+              </div>
+
+              {/* ============================================
+                  METEO PRINCIPALE
+                  ============================================ */}
               <div className="weather-main">
                 <div className="weather-icon-container">
                   {!estJour && donneesMeteo.codeIcone?.startsWith('01') ? (
@@ -662,11 +662,6 @@ const Meteo = () => {
                     {estCoucherSoleil ? ' coucher' : estJour ? ' jour' : ' nuit'}
                   </span>
                 </p>
-
-                <div className='time-display'>
-                  <span className='time-label'>Heure locale</span>
-                  <time>{heureActuelle || 'Chargement...'}</time>
-                </div>
 
                 <button
                   type="button"
