@@ -1027,3 +1027,69 @@ body:has(.background-sunset.visible) .stars {
     background: rgba(0, 0, 0, 0.03);
   }
 }
+
+/* ============================================
+   GRANDS ECRANS — CARTE PLUS LARGE
+   ============================================ */
+
+/* Desktop standard (>= 1024px) */
+@media (min-width: 1024px) {
+  .weather-container {
+    max-width: 620px;
+  }
+}
+
+/* Grands ecrans (>= 1440px) */
+@media (min-width: 1440px) {
+  .weather-container {
+    max-width: 780px;
+  }
+  
+  .weather {
+    padding: 50px 55px;
+  }
+  
+  /* Passer les details sur 3 colonnes */
+  .weather-details {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  /* Previsions plus grandes */
+  .forecast-item {
+    flex: 0 0 100px;
+    min-height: 140px;
+  }
+  
+  .daily-item {
+    flex-basis: 130px;
+    min-height: 160px;
+  }
+  
+  .forecast-item img,
+  .daily-item img {
+    width: 52px;
+    height: 52px;
+  }
+}
+
+/* Tres grands ecrans (>= 1920px) */
+@media (min-width: 1920px) {
+  .weather-container {
+    max-width: 900px;
+  }
+  
+  .weather {
+    padding: 55px 65px;
+  }
+  
+  .temperature {
+    font-size: 90px;
+  }
+  
+  .weather-icon,
+  .night-icon {
+    width: 160px;
+    height: 160px;
+  }
+}
+
